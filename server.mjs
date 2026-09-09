@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { collect } from "./src/collectors.mjs";
 import { lookupZip, ZipError, normalizeZip } from "./src/geocode.mjs";
-import { searchEvents, rinkOptions, TYPE_IDS, DEFAULT_RADIUS_MILES, RADIUS_CHOICES } from "./src/query.mjs";
+import { searchEvents, rinkOptions, TYPE_IDS, DEFAULT_RADIUS_MILES, RADIUS_CHOICES, HOUR_CHOICES } from "./src/query.mjs";
 import { homePage, searchPage, rinksPage, rinkPage, aboutPage, notFoundPage } from "./src/pages.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -94,10 +94,16 @@ function withRinkDetails(events, sources) {
 }
 
 function readSearchQuery(url) {
-  if (url.searchParams.get("reset")) return { zip: HOME_ZIP, radius: DEFAULT_RADIUS_MILES, types: TYPE_IDS };
+  if (url.searchParams.get("reset")) {
+    return { zip: HOME_ZIP, radius: DEFAULT_RADIUS_MILES, types: TYPE_IDS, after: null, before: null };
+  }
   const requestedTypes = url.searchParams.getAll("type").filter(type => TYPE_IDS.includes(type));
   const radius = Number(url.searchParams.get("radius"));
   const weekday = url.searchParams.get("weekday");
+  const hour = name => {
+    const value = Number(url.searchParams.get(name));
+    return HOUR_CHOICES.some(choice => choice.value === value) ? value : null;
+  };
   return {
     zip: (url.searchParams.get("zip") ?? HOME_ZIP).trim(),
     radius: RADIUS_CHOICES.includes(radius) ? radius : DEFAULT_RADIUS_MILES,
@@ -106,7 +112,9 @@ function readSearchQuery(url) {
     rink: url.searchParams.get("rink") || null,
     weekday: weekday === null || weekday === "" ? null : Number(weekday),
     start: url.searchParams.get("start") || null,
-    end: url.searchParams.get("end") || null
+    end: url.searchParams.get("end") || null,
+    after: hour("after"),
+    before: hour("before")
   };
 }
 
@@ -152,7 +160,8 @@ async function handler(request, response) {
     const { location } = await resolveLocation(query.zip);
     const result = searchEvents(events, {
       origin: location, radiusMiles: query.radius, types: query.types,
-      rinkId: query.rink, weekday: query.weekday, startDate: query.start, endDate: query.end
+      rinkId: query.rink, weekday: query.weekday, startDate: query.start, endDate: query.end,
+      afterHour: query.after, beforeHour: query.before
     });
     return send(response, 200, JSON.stringify({ updatedAt: data.updatedAt, sourceStatus: data.sourceStatus, events: result.events }));
   }
@@ -169,7 +178,8 @@ async function handler(request, response) {
       origin: location,
       radiusMiles: location ? query.radius : null,
       types: query.types, rinkId: query.rink, weekday: query.weekday,
-      startDate: query.start, endDate: query.end
+      startDate: query.start, endDate: query.end,
+      afterHour: query.after, beforeHour: query.before
     });
     return sendHtml(response, 200, searchPage({
       query, result, location, error,

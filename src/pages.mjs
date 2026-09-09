@@ -97,12 +97,26 @@ export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
 
 /* ------------------------------------------------------------------ search */
 
+function hourLabel(hour) {
+  const suffix = hour < 12 ? "am" : "pm";
+  return `${hour % 12 === 0 ? 12 : hour % 12}${suffix}`;
+}
+
+function timeClause(query) {
+  if (query.after !== null && query.after !== undefined && query.before !== null && query.before !== undefined) {
+    return ` starting between <strong>${hourLabel(query.after)}</strong> and <strong>${hourLabel(query.before)}</strong>`;
+  }
+  if (query.after !== null && query.after !== undefined) return ` starting <strong>${hourLabel(query.after)}</strong> or later`;
+  if (query.before !== null && query.before !== undefined) return ` starting <strong>${hourLabel(query.before)}</strong> or earlier`;
+  return "";
+}
+
 export function searchPage({ query, result, rinks, location, error, updatedAt }) {
   const summary = error
     ? `<p class="notice error">${escapeHtml(error)}</p>`
     : `<p class="summary">Showing <strong>${result.total}</strong> ${result.total === 1 ? "session" : "sessions"}
        ${query.rink ? `at <strong>${escapeHtml(rinks.find(rink => rink.id === query.rink)?.name ?? "one rink")}</strong>` : "from <strong>all rinks</strong>"}
-       ${location ? `within <strong>${query.radius} miles</strong> of <strong>${escapeHtml(location.place)} ${escapeHtml(location.zip)}</strong>` : ""}.</p>`;
+       ${location ? `within <strong>${query.radius} miles</strong> of <strong>${escapeHtml(location.place)} ${escapeHtml(location.zip)}</strong>` : ""}${timeClause(query)}.</p>`;
 
   const empty = `<div class="empty">
     <h2>Nothing on the board for that search.</h2>

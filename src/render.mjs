@@ -1,7 +1,7 @@
 import { icon } from "./icons.mjs";
 import {
-  SESSION_TYPES, TYPE_IDS, WEEKDAYS, RADIUS_CHOICES, DEFAULT_RADIUS_MILES,
-  formatShortDay, formatTimeRange, typeLabel
+  SESSION_TYPES, TYPE_IDS, WEEKDAYS, RADIUS_CHOICES, HOUR_CHOICES, DEFAULT_RADIUS_MILES,
+  formatTimeRange, typeLabel
 } from "./query.mjs";
 
 export function escapeHtml(value) {
@@ -144,9 +144,13 @@ export function searchForm({ query, rinks }) {
       options: rinks.map(rink => ({ value: rink.id, label: `${rink.name} — ${rink.town}` })) })}
     ${selectField({ name: "weekday", label: "Weekday", value: query.weekday, blank: "Any day",
       options: WEEKDAYS.map(day => ({ value: day.id, label: day.label })) })}
-    <label class="field"><span>From</span>
+    ${selectField({ name: "after", label: "Earliest start", value: query.after, blank: "Any time",
+      options: HOUR_CHOICES.map(hour => ({ value: hour.value, label: hour.label })) })}
+    ${selectField({ name: "before", label: "Latest start", value: query.before, blank: "Any time",
+      options: HOUR_CHOICES.map(hour => ({ value: hour.value, label: hour.label })) })}
+    <label class="field"><span>First day</span>
       <input type="date" name="start" value="${attr(query.start ?? "")}"></label>
-    <label class="field"><span>To</span>
+    <label class="field"><span>Last day</span>
       <input type="date" name="end" value="${attr(query.end ?? "")}"></label>
     <button class="reset" type="submit" name="reset" value="1">Clear filters</button>
   </div>

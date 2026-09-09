@@ -15,6 +15,14 @@ export const WEEKDAYS = [
   { id: 6, label: "Saturday" }
 ];
 
+/** Start-hour choices for the time-of-day filter. Rinks rarely sell walk-on ice before 5am. */
+export const HOUR_CHOICES = Array.from({ length: 19 }, (unused, index) => {
+  const hour = index + 5;
+  const suffix = hour < 12 ? "AM" : "PM";
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return { value: hour, label: `${display}:00 ${suffix}` };
+});
+
 export const DEFAULT_RADIUS_MILES = 25;
 export const RADIUS_CHOICES = [5, 10, 25, 50];
 
@@ -39,6 +47,12 @@ export function easternDay(value) {
 export function easternWeekday(value) {
   const parts = easternParts(new Date(value));
   return new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+}
+
+/** Minutes since midnight, Eastern, for the day the session starts on. */
+export function easternMinutes(value) {
+  const parts = easternParts(new Date(value));
+  return parts.hour * 60 + parts.minute;
 }
 
 export function formatDayLabel(value) { return dayLabelFormat.format(new Date(value)); }
@@ -77,6 +91,8 @@ export function searchEvents(events, options = {}) {
     weekday = null,
     startDate = null,
     endDate = null,
+    afterHour = null,
+    beforeHour = null,
     now = new Date()
   } = options;
 
@@ -94,6 +110,14 @@ export function searchEvents(events, options = {}) {
     if (until && start > until) continue;
     if (rinkId && event.rinkId !== rinkId) continue;
     if (weekday !== null && weekday !== undefined && easternWeekday(start) !== Number(weekday)) continue;
+
+    // Time of day is matched on when the session starts, in Eastern wall-clock terms:
+    // "earliest 6 AM" keeps a 6:00 start, "latest 9 PM" keeps a 9:45 PM one.
+    if (afterHour !== null || beforeHour !== null) {
+      const minutes = easternMinutes(start);
+      if (afterHour !== null && minutes < Number(afterHour) * 60) continue;
+      if (beforeHour !== null && minutes > Number(beforeHour) * 60 + 59) continue;
+    }
 
     const miles = origin
       ? distanceMiles(origin.latitude, origin.longitude, event.latitude, event.longitude)

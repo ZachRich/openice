@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { easternToUtc } from "../src/ical.mjs";
-import { searchEvents, rinkOptions, easternWeekday, formatTimeRange, TYPE_IDS } from "../src/query.mjs";
+import { searchEvents, rinkOptions, easternWeekday, easternMinutes, formatTimeRange, HOUR_CHOICES, TYPE_IDS } from "../src/query.mjs";
 
 const now = new Date("2026-10-01T09:00:00Z");
 const PEABODY = { latitude: 42.5426, longitude: -70.9368 };
@@ -108,4 +108,47 @@ test("a time range drops the repeated meridiem but keeps it when the range cross
   assert.equal(range(20, 15, 21, 45), "8:15 – 9:45 PM");
   assert.equal(range(11, 45, 13, 30), "11:45 AM – 1:30 PM");
   assert.equal(range(9, 5, 10, 50), "9:05 – 10:50 AM");
+});
+
+const at = (hour, minute = 0) => event({
+  start: easternToUtc(2026, 10, 5, hour, minute, 0).toISOString(),
+  end: easternToUtc(2026, 10, 5, hour + 1, minute, 0).toISOString()
+});
+
+test("easternMinutes counts from midnight Eastern, not UTC", () => {
+  // 8:15 PM Eastern is already the next day in UTC.
+  assert.equal(easternMinutes(easternToUtc(2026, 10, 8, 20, 15, 0).toISOString()), 20 * 60 + 15);
+  assert.equal(easternMinutes(easternToUtc(2026, 11, 8, 6, 30, 0).toISOString()), 6 * 60 + 30, "and after the DST change");
+});
+
+test("earliest start keeps sessions at or after that hour", () => {
+  const events = [at(6), at(9, 5), at(12), at(20, 15)];
+  const result = searchEvents(events, { now, afterHour: 12 });
+  assert.deepEqual(result.events.map(e => easternMinutes(e.start)), [12 * 60, 20 * 60 + 15]);
+});
+
+test("latest start keeps the whole of the chosen hour", () => {
+  const events = [at(9, 5), at(21, 0), at(21, 45), at(22, 0)];
+  const result = searchEvents(events, { now, beforeHour: 21 });
+  assert.equal(result.total, 3, "a 9:45 PM start still counts as starting at 9");
+  assert.ok(!result.events.some(e => easternMinutes(e.start) === 22 * 60));
+});
+
+test("the two bounds combine into a window", () => {
+  const events = [at(6), at(11, 30), at(13), at(19)];
+  const result = searchEvents(events, { now, afterHour: 11, beforeHour: 13 });
+  assert.deepEqual(result.events.map(e => easternMinutes(e.start)), [11 * 60 + 30, 13 * 60]);
+});
+
+test("before-work and after-work are both expressible", () => {
+  const events = [at(5, 45), at(6, 30), at(12), at(18, 15), at(21)];
+  assert.equal(searchEvents(events, { now, beforeHour: 7 }).total, 2, "anything starting before 8am");
+  assert.equal(searchEvents(events, { now, afterHour: 18 }).total, 2, "anything starting from 6pm");
+});
+
+test("the hour choices cover a rink's plausible day", () => {
+  assert.equal(HOUR_CHOICES[0].label, "5:00 AM");
+  assert.equal(HOUR_CHOICES.at(-1).label, "11:00 PM");
+  assert.equal(HOUR_CHOICES.find(choice => choice.value === 12).label, "12:00 PM");
+  assert.equal(HOUR_CHOICES.find(choice => choice.value === 13).label, "1:00 PM");
 });
