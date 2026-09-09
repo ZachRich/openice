@@ -18,6 +18,9 @@ function stateBadge(status) {
       ? `<span class="state stale"><i></i>Showing last known schedule</span>`
       : `<span class="state error"><i></i>Last check failed</span>`;
   }
+  if (status?.volumeDrop) {
+    return `<span class="state stale"><i></i>Fewer sessions than usual (${status.volumeDrop.count}, normally about ${status.volumeDrop.baseline})</span>`;
+  }
   return `<span class="state ${attr(state)}"><i></i>${escapeHtml(STATE_LABEL[state] ?? "Unknown")}</span>`;
 }
 

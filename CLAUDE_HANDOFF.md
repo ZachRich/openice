@@ -95,6 +95,21 @@ The reasoning: a failed fetch is nearly always transient, and yesterday's schedu
 much closer to the truth than no schedule. But an unconfirmed schedule is worth showing for a day,
 not for a week.
 
+## Watching for a source going quiet
+
+A source can fetch perfectly and stop being true: the page still loads, the markup shifts, and the
+adapter matches nothing. That reads as `ok, 0 sessions`, which is indistinguishable from a rink
+with nothing posted — the one case rule 5 below deliberately calls healthy.
+
+So each source keeps its last 10 successful counts in `recentCounts`, and a refresh compares the
+new count against their median. A count at or below half the median (when the median is at least
+3, so a rink that posts one session a week is left alone) sets `volumeDrop`, which prints a warning
+on the terminal and shows in source health as "Fewer sessions than usual". A failed check never
+enters the history — a timeout says nothing about how much a rink publishes.
+
+It is a prompt to look, not a verdict: the 52-to-24 fall at McVann-O'Keefe was real. The signal
+clears itself once the new level has been seen often enough to become the median.
+
 ## Data-quality rules
 
 1. Use only publicly reachable schedule pages or public iCalendar feeds; never use logged-in booking endpoints.

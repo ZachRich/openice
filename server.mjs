@@ -58,6 +58,12 @@ export async function refresh() {
     }
 
     const next = mergeCollection({ sources, prior, outcomes });
+    for (const [id, status] of Object.entries(next.sourceStatus)) {
+      if (!status.volumeDrop) continue;
+      const name = sources.find(source => source.id === id)?.name ?? id;
+      console.warn(`${name}: ${status.volumeDrop.count} sessions, down from about ${status.volumeDrop.baseline}. `
+        + "The page loaded fine, so either the rink cancelled a lot of ice or the adapter has stopped matching.");
+    }
     await saveJson(dataPath, next);
     return next;
   } finally {

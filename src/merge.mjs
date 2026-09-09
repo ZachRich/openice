@@ -14,6 +14,40 @@
 
 export const STALE_LIMIT_HOURS = 48;
 
+/**
+ * Watching for a source going quiet.
+ *
+ * A source can fetch perfectly and still stop being true: the page keeps loading, the
+ * markup shifts slightly, and the adapter quietly matches nothing. That reads as "ok, 0
+ * sessions", which is indistinguishable from a rink with nothing posted — the one case the
+ * data-quality rules deliberately treat as healthy.
+ *
+ * So each source keeps its recent successful counts and a refresh compares against their
+ * median, which one strange run cannot move. A sharp fall is worth a look; it is not
+ * automatically wrong, since rinks really do cancel ice and seasons really do end. The
+ * signal clears itself once the new level has been seen often enough to become the median.
+ */
+export const VOLUME_HISTORY = 10;
+export const VOLUME_DROP_RATIO = 0.5;
+export const VOLUME_MIN_SAMPLES = 3;
+export const VOLUME_MIN_BASELINE = 3;
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+}
+
+/** null when there is not enough history to judge, or the source is too small to bother. */
+export function volumeDrop(history, count) {
+  if (history.length < VOLUME_MIN_SAMPLES) return null;
+  const baseline = median(history);
+  if (baseline < VOLUME_MIN_BASELINE) return null;
+  if (count > baseline * VOLUME_DROP_RATIO) return null;
+  // The comparison uses the exact median; the reported figure is for a human to read.
+  return { baseline: Math.round(baseline), count };
+}
+
 function groupByRink(events = []) {
   const grouped = new Map();
   for (const event of events) {
@@ -42,18 +76,27 @@ export function mergeCollection({ sources, prior = {}, outcomes = [], now = new 
     const previous = previousStatus[source.id] ?? {};
 
     if (outcome.state === "disabled") {
-      sourceStatus[source.id] = { state: "disabled", checkedAt, message: outcome.message };
+      sourceStatus[source.id] = {
+        state: "disabled", checkedAt, message: outcome.message,
+        ...(previous.recentCounts ? { recentCounts: previous.recentCounts } : {})
+      };
       continue;
     }
 
+    const history = previous.recentCounts ?? [];
+
     if (outcome.state !== "error") {
+      const count = outcome.events.length;
+      const drop = volumeDrop(history, count);
       events.push(...outcome.events);
       sourceStatus[source.id] = {
         state: outcome.state,
         checkedAt,
         lastSuccessAt: checkedAt,
         message: outcome.message,
-        count: outcome.events.length
+        count,
+        recentCounts: [...history, count].slice(-VOLUME_HISTORY),
+        ...(drop ? { volumeDrop: drop } : {})
       };
       continue;
     }
@@ -70,6 +113,8 @@ export function mergeCollection({ sources, prior = {}, outcomes = [], now = new 
       lastSuccessAt,
       message: outcome.message,
       count: keep.length,
+      // A failed check says nothing about how much the rink publishes, so the history stands.
+      ...(history.length > 0 ? { recentCounts: history } : {}),
       retained: keep.length > 0,
       // Worth saying out loud: the rink's sessions were dropped, not merely unrefreshed.
       dropped: keep.length === 0 && held.length > 0

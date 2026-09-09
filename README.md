@@ -132,6 +132,14 @@ refresh and stops rather than silently carrying a stale semester schedule forwar
 Essex Sports Center and Burbank Ice Arena are recorded but disabled: their public pages do not
 offer a confirmed, stable machine-readable schedule. This avoids treating guessed data as live.
 
+## When a rink goes quiet
+
+A source that keeps loading but suddenly returns far fewer sessions than usual is flagged: the
+refresh prints a warning and source health reads "Fewer sessions than usual". That is the failure
+that is otherwise invisible — a page that still loads while the adapter has stopped matching looks
+exactly like a rink with nothing posted. It is a prompt to check the rink's page, not proof of a
+bug; rinks really do cancel a lot of ice.
+
 ## When a rink's page is down
 
 A source that fails to fetch keeps the schedule it last published rather than disappearing, and

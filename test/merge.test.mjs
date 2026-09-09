@@ -134,3 +134,72 @@ test("events come back in start order regardless of which source supplied them",
   });
   assert.deepEqual(result.events.map(event => event.rinkId), ["stoneham", "peabody"]);
 });
+
+/* ------------------------------------------------ a source that goes quiet */
+
+import { volumeDrop, VOLUME_HISTORY } from "../src/merge.mjs";
+
+const history = counts => ({
+  events: [],
+  sourceStatus: { peabody: { state: "ok", checkedAt: hoursAgo(6), lastSuccessAt: hoursAgo(6), recentCounts: counts } }
+});
+
+test("no judgement is made until there is enough history", () => {
+  assert.equal(volumeDrop([], 0), null);
+  assert.equal(volumeDrop([50, 50], 0), null, "two samples is not a baseline");
+  assert.notEqual(volumeDrop([50, 50, 50], 0), null);
+});
+
+test("a sharp fall against the usual level is flagged", () => {
+  assert.deepEqual(volumeDrop([52, 51, 50, 52], 24), { baseline: 52, count: 24 });
+  assert.equal(volumeDrop([52, 51, 50, 52], 30), null, "a mild dip is not a signal");
+});
+
+test("one strange run does not move the baseline", () => {
+  // The median ignores the outlier, so the following normal run is not flagged.
+  assert.equal(volumeDrop([50, 50, 0, 50, 50], 48), null);
+});
+
+test("a source that goes to zero while fetching fine is flagged", () => {
+  // The exact failure the data-quality rules cannot see: "ok, 0 sessions" from a rink
+  // that always has sessions looks identical to a rink with nothing posted.
+  assert.deepEqual(volumeDrop([12, 14, 13], 0), { baseline: 13, count: 0 });
+});
+
+test("a rink that only ever posts a session or two is left alone", () => {
+  assert.equal(volumeDrop([2, 1, 2], 0), null, "small numbers swing for ordinary reasons");
+});
+
+test("the signal appears in source health and clears once the new level is normal", () => {
+  const dropped = mergeCollection({
+    sources: SOURCES, prior: history([52, 51, 50, 52]), now,
+    outcomes: [ok("peabody", Array.from({ length: 24 }, (unused, i) => session("peabody", 2))), ok("stoneham", []), off("burbank")]
+  });
+  assert.deepEqual(dropped.sourceStatus.peabody.volumeDrop, { baseline: 52, count: 24 });
+
+  // Once 24 has been seen enough times it is simply what this rink publishes now.
+  const settled = mergeCollection({
+    sources: SOURCES, prior: history([24, 24, 24, 24, 24]), now,
+    outcomes: [ok("peabody", Array.from({ length: 24 }, (unused, i) => session("peabody", 2))), ok("stoneham", []), off("burbank")]
+  });
+  assert.equal(settled.sourceStatus.peabody.volumeDrop, undefined);
+});
+
+test("history is kept to a fixed length and only records successful checks", () => {
+  const long = Array.from({ length: VOLUME_HISTORY + 5 }, () => 10);
+  const result = mergeCollection({
+    sources: SOURCES, prior: history(long), now,
+    outcomes: [ok("peabody", [session("peabody", 2)]), ok("stoneham", []), off("burbank")]
+  });
+  assert.equal(result.sourceStatus.peabody.recentCounts.length, VOLUME_HISTORY);
+  assert.equal(result.sourceStatus.peabody.recentCounts.at(-1), 1);
+});
+
+test("a failed check does not enter the history or erase it", () => {
+  const result = mergeCollection({
+    sources: SOURCES, prior: history([20, 20, 20]), now,
+    outcomes: [failed("peabody"), ok("stoneham", []), off("burbank")]
+  });
+  assert.deepEqual(result.sourceStatus.peabody.recentCounts, [20, 20, 20], "a timeout says nothing about volume");
+  assert.equal(result.sourceStatus.peabody.volumeDrop, undefined);
+});
