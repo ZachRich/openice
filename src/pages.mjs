@@ -1,6 +1,6 @@
-import { layout, escapeHtml, searchForm, dayGroups, eventCard } from "./render.mjs";
+import { layout, escapeHtml, searchForm, dayGroups, radiusSelect, zipInput } from "./render.mjs";
 import { icon } from "./icons.mjs";
-import { SESSION_TYPES, DEFAULT_RADIUS_MILES, typeLabel, formatShortDay, formatTimeRange } from "./query.mjs";
+import { SESSION_TYPES, DEFAULT_RADIUS_MILES } from "./query.mjs";
 
 const attr = escapeHtml;
 
@@ -25,7 +25,7 @@ function lastChecked(updatedAt) {
 
 /* -------------------------------------------------------------------- home */
 
-export function homePage({ sources, events, updatedAt }) {
+export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
   const live = sources.filter(source => source.enabled);
   const counts = Object.fromEntries(SESSION_TYPES.map(type =>
     [type.id, events.filter(event => event.type === type.id).length]));
@@ -61,19 +61,14 @@ export function homePage({ sources, events, updatedAt }) {
 
   const body = `<section class="hero">
   <div class="wrap">
-    <p class="eyebrow">North Shore, Massachusetts</p>
+    <p class="eyebrow">North Shore &middot; Massachusetts</p>
     <h1>Find more ice.</h1>
     <p class="lede">Every stick &amp; puck, pickup skate, and public session posted by rinks near
       you — collected from the rinks' own schedules, in one list.</p>
     <div class="type-cards">${typeCards}</div>
     <form class="search-bar hero-search" method="get" action="/search">
-      <label class="sr-only" for="hero-radius">Search radius</label>
-      <select id="hero-radius" name="radius">
-        ${[5, 10, 25, 50].map(miles => `<option value="${miles}"${miles === DEFAULT_RADIUS_MILES ? " selected" : ""}>${miles} miles</option>`).join("")}
-      </select>
-      <span class="search-pin">${icon("pin")}</span>
-      <label class="sr-only" for="hero-zip">ZIP code</label>
-      <input id="hero-zip" name="zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="ZIP code" value="01960">
+      ${radiusSelect(DEFAULT_RADIUS_MILES, "hero-radius")}
+      ${zipInput(homeZip, "hero-zip")}
       <button class="button" type="submit">${icon("search")}<span>Search</span></button>
     </form>
   </div>
@@ -109,8 +104,8 @@ export function homePage({ sources, events, updatedAt }) {
 </section>`;
 
   return layout({
-    title: "North Shore Ice Finder — stick & puck, pickup, and public skate near Peabody, MA",
-    description: "Publicly posted stick & puck, pickup hockey, and public skate sessions at rinks near Peabody, Massachusetts.",
+    title: "OpenIce — stick & puck, pickup, and public skate near Peabody, MA",
+    description: "Every publicly posted stick & puck, pickup hockey, and public skate session at rinks near Peabody, Massachusetts.",
     active: "home",
     body
   });
@@ -143,7 +138,7 @@ export function searchPage({ query, result, rinks, location, error, updatedAt })
 </div>`;
 
   return layout({
-    title: "Search results — North Shore Ice Finder",
+    title: "Search results — OpenIce",
     description: "Search stick & puck, pickup hockey, and public skate sessions by ZIP code and radius.",
     active: "search",
     body
@@ -177,8 +172,8 @@ export function rinksPage({ sources, sourceStatus, events, updatedAt }) {
   <div class="rink-cards">${cards}</div>
 </div>`;
 
-  return layout({ title: "Rinks — North Shore Ice Finder", active: "rinks", body,
-    description: "Rinks indexed by North Shore Ice Finder and their schedule-source health." });
+  return layout({ title: "Rinks — OpenIce", active: "rinks", body,
+    description: "Rinks indexed by OpenIce and their schedule-source health." });
 }
 
 export function rinkPage({ source, status, days, total }) {
@@ -206,7 +201,7 @@ export function rinkPage({ source, status, days, total }) {
          : "This rink is not indexed yet, because it does not publish a schedule this app can read reliably."}</p></div>`
     : dayGroups(days)}
 </div>`;
-  return layout({ title: `${source.name} — North Shore Ice Finder`, active: "rinks", body,
+  return layout({ title: `${source.name} — OpenIce`, active: "rinks", body,
     description: `Upcoming stick & puck, pickup, and public skate sessions at ${source.name}, ${source.town}.` });
 }
 
@@ -251,13 +246,13 @@ export function aboutPage({ sources, sourceStatus, updatedAt }) {
   </table>
   <p><button class="button" id="refresh" type="button">${icon("refresh")}<span>Refresh now</span></button></p>
 </div>`;
-  return layout({ title: "About — North Shore Ice Finder", active: "about", body,
-    description: "How North Shore Ice Finder collects rink schedules, and the rules it follows." });
+  return layout({ title: "About — OpenIce", active: "about", body,
+    description: "How OpenIce collects rink schedules, and the rules it follows." });
 }
 
 export function notFoundPage() {
   return layout({
-    title: "Not found — North Shore Ice Finder",
+    title: "Not found — OpenIce",
     active: "",
     body: `<div class="wrap narrow"><h1>Not found</h1>
       <p>That page isn't here. <a href="/search">Find ice</a> or head <a href="/">home</a>.</p></div>`

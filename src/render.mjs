@@ -12,9 +12,12 @@ export function escapeHtml(value) {
 
 const attr = escapeHtml;
 
+// Archivo carries the identity; the fallback stack keeps the weight contrast if the
+// font host is unreachable, which is the normal case when this runs on a home network.
+const FONTS = "https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&display=swap";
+
 export function layout({ title, description = "", body, active = "" }) {
   const nav = [
-    ["/", "Home", "home"],
     ["/search", "Find ice", "search"],
     ["/rinks", "Rinks", "rinks"],
     ["/about", "About", "about"]
@@ -28,6 +31,9 @@ export function layout({ title, description = "", body, active = "" }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${attr(description)}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="${FONTS}">
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='19' font-size='19'>&#127954;</text></svg>">
 </head>
@@ -35,17 +41,17 @@ export function layout({ title, description = "", body, active = "" }) {
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="/">North Shore <span>Ice Finder</span></a>
+    <a class="brand" href="/">Open<span>Ice</span></a>
     <nav aria-label="Main">${nav}</nav>
   </div>
 </header>
 <main id="main">${body}</main>
 <footer class="site-footer">
   <div class="wrap">
-    <p>A personal project that reads publicly posted rink schedules near Peabody, MA. It is not
+    <p>OpenIce reads the schedules that rinks around the North Shore already publish. It is not
     affiliated with any rink, and it never books or holds ice.</p>
-    <p class="fine">Rinks cancel walk-on ice for rentals and events. Always check the rink's own
-    page — linked on every session — before you drive over.</p>
+    <p class="fine">Rinks pull walk-on ice for rentals and events, often the same day. Every
+    session here links back to the rink's own page — check it before you drive over.</p>
   </div>
 </footer>
 <script src="/app.js" type="module"></script>
@@ -53,16 +59,7 @@ export function layout({ title, description = "", body, active = "" }) {
 </html>`;
 }
 
-/* ---------------------------------------------------------------- components */
-
-function typeCard(type, { href, selected = false } = {}) {
-  const tag = href ? "a" : "div";
-  return `<${tag} class="type-card${selected ? " selected" : ""}"${href ? ` href="${attr(href)}"` : ""}>
-    ${icon(type.id)}
-    <strong>${escapeHtml(type.label)}</strong>
-    <span>${escapeHtml(type.blurb)}</span>
-  </${tag}>`;
-}
+/* ---------------------------------------------------------------- sessions */
 
 function priceBlock(event) {
   return event.price
@@ -72,20 +69,24 @@ function priceBlock(event) {
 
 export function eventCard(event) {
   const distance = typeof event.distanceMiles === "number"
-    ? `<span class="distance">(${event.distanceMiles} mi away)</span>` : "";
+    ? `<p class="distance"><b>${event.distanceMiles}</b>miles</p>` : "";
+  const posted = event.title && event.title.toLowerCase() !== typeLabel(event.type).toLowerCase()
+    ? `<p class="event-title">Posted as &ldquo;${escapeHtml(event.title)}&rdquo;</p>` : "";
+
   return `<article class="event-card">
+  <div class="event-time">
+    <p class="event-when">${escapeHtml(formatTimeRange(event.start, event.end))}</p>
+    <span class="event-type ${attr(event.type)}">${icon(event.type)}${escapeHtml(typeLabel(event.type))}</span>
+  </div>
   <div class="event-main">
-    <p class="event-type">${icon(event.type)}<span>${escapeHtml(typeLabel(event.type))}</span></p>
-    <p class="event-when">${escapeHtml(formatShortDay(event.start))} &middot; ${escapeHtml(formatTimeRange(event.start, event.end))}</p>
     <p class="event-rink"><a href="/rinks/${attr(event.rinkId)}">${escapeHtml(event.rink)}</a></p>
     <p class="event-where">${icon("pin")}${escapeHtml(event.address ?? event.town ?? "")}</p>
-    ${event.title && event.title.toLowerCase() !== typeLabel(event.type).toLowerCase()
-      ? `<p class="event-title">Posted as &ldquo;${escapeHtml(event.title)}&rdquo;</p>` : ""}
+    ${posted}
   </div>
   <div class="event-side">
-    ${priceBlock(event)}
-    <a class="button ghost" href="${attr(event.sourceUrl)}" target="_blank" rel="noreferrer noopener">Rink site ${icon("external")}</a>
     ${distance}
+    ${priceBlock(event)}
+    <a class="button" href="${attr(event.sourceUrl)}" target="_blank" rel="noreferrer noopener">Rink site ${icon("external")}</a>
   </div>
 </article>`;
 }
@@ -94,9 +95,12 @@ export function dayGroups(days) {
   if (days.length === 0) return "";
   return days.map(day => `<section class="day-group">
   <h2 class="day-heading">${escapeHtml(day.label)}</h2>
+  <i class="centre-line" aria-hidden="true"></i>
   ${day.events.map(eventCard).join("\n")}
 </section>`).join("\n");
 }
+
+/* ----------------------------------------------------------------- filters */
 
 function selectField({ name, label, options, value, blank = "Any" }) {
   const items = [`<option value="">${escapeHtml(blank)}</option>`]
@@ -104,6 +108,17 @@ function selectField({ name, label, options, value, blank = "Any" }) {
       `<option value="${attr(option.value)}"${String(option.value) === String(value ?? "") ? " selected" : ""}>${escapeHtml(option.label)}</option>`));
   return `<label class="field"><span>${escapeHtml(label)}</span>
     <select name="${attr(name)}">${items.join("")}</select></label>`;
+}
+
+export function radiusSelect(value, id) {
+  return `<select id="${attr(id)}" name="radius" aria-label="Search radius">${
+    RADIUS_CHOICES.map(miles => `<option value="${miles}"${Number(value) === miles ? " selected" : ""}>${miles} miles</option>`).join("")
+  }</select>`;
+}
+
+export function zipInput(value, id) {
+  return `<input id="${attr(id)}" name="zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5"
+    aria-label="ZIP code" placeholder="ZIP code" value="${attr(value ?? "")}">`;
 }
 
 export function searchForm({ query, rinks }) {
@@ -116,14 +131,8 @@ export function searchForm({ query, rinks }) {
 
   return `<form class="search" method="get" action="/search">
   <div class="search-bar">
-    <label class="sr-only" for="radius">Search radius</label>
-    <select id="radius" name="radius">
-      ${RADIUS_CHOICES.map(miles => `<option value="${miles}"${Number(radius) === miles ? " selected" : ""}>${miles} miles</option>`).join("")}
-    </select>
-    <span class="search-pin">${icon("pin")}</span>
-    <label class="sr-only" for="zip">ZIP code</label>
-    <input id="zip" name="zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5"
-      placeholder="ZIP code" value="${attr(query.zip ?? "")}">
+    ${radiusSelect(radius, "radius")}
+    ${zipInput(query.zip, "zip")}
     <button class="button" type="submit">${icon("search")}<span>Search</span></button>
   </div>
   <fieldset class="chips">
@@ -139,7 +148,7 @@ export function searchForm({ query, rinks }) {
       <input type="date" name="start" value="${attr(query.start ?? "")}"></label>
     <label class="field"><span>To</span>
       <input type="date" name="end" value="${attr(query.end ?? "")}"></label>
-    <button class="button ghost reset" type="submit" name="reset" value="1">Clear filters</button>
+    <button class="reset" type="submit" name="reset" value="1">Clear filters</button>
   </div>
 </form>`;
 }

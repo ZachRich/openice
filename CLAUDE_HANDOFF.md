@@ -1,4 +1,4 @@
-# North Shore Ice Finder — Claude Handoff
+# OpenIce — Claude Handoff
 
 ## Goal
 
@@ -58,6 +58,21 @@ proving the excluded instance stays excluded.
 
 Not supported yet: `RECURRENCE-ID;RANGE=THISANDFUTURE`, `RDATE`, and `FREQ` values other than
 `WEEKLY` and `DAILY` (those fall back to the single `DTSTART`).
+
+## Visual identity — "Lines"
+
+Chosen deliberately over two alternatives; do not drift back toward generic card UI.
+
+- **No rounded corners, no drop shadows, no card surfaces.** Separation comes from rules, not from
+  boxes floating on a tinted ground.
+- **The rules mean something.** A 3px red rule opens a day (centre line); a 2px blue rule divides
+  sessions and rink rows (blue line); a 3px black rule separates page regions. Gold is reserved for
+  public skate and for "not indexed yet" states.
+- **Weight, not size, carries hierarchy.** Archivo 900 for headings and day names, 700 for data,
+  400 for prose. Headings are uppercase with tight negative tracking.
+- **Figures are tabular** everywhere they line up — times, distances, prices, ZIPs.
+- **Distance is set like a jersey number**: large, red, with the unit small underneath.
+- Session type is a solid rectangular tag, coloured by type (blue / red / gold), never a pill.
 
 ## Session types
 

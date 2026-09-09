@@ -159,7 +159,7 @@ async function handler(request, response) {
 
   if (pathname === "/") {
     const upcoming = searchEvents(events, { types: TYPE_IDS });
-    return sendHtml(response, 200, homePage({ sources, events: upcoming.events, updatedAt: data.updatedAt }));
+    return sendHtml(response, 200, homePage({ sources, events: upcoming.events, updatedAt: data.updatedAt, homeZip: HOME_ZIP }));
   }
 
   if (pathname === "/search") {
@@ -216,7 +216,7 @@ if (process.argv.includes("--refresh")) {
 } else {
   const server = http.createServer((request, response) =>
     handler(request, response).catch(error => send(response, 500, JSON.stringify({ error: error.message }))));
-  server.listen(port, host, () => console.log(`North Shore Ice Finder: http://${host}:${port}`));
+  server.listen(port, host, () => console.log(`OpenIce: http://${host}:${port}`));
   refresh().catch(error => console.error("Initial refresh failed:", error.message));
   setInterval(() => refresh().catch(error => console.error("Scheduled refresh failed:", error.message)), refreshMinutes * 60 * 1000).unref();
 }

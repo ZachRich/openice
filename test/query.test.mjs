@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { easternToUtc } from "../src/ical.mjs";
-import { searchEvents, rinkOptions, easternWeekday, TYPE_IDS } from "../src/query.mjs";
+import { searchEvents, rinkOptions, easternWeekday, formatTimeRange, TYPE_IDS } from "../src/query.mjs";
 
 const now = new Date("2026-10-01T09:00:00Z");
 const PEABODY = { latitude: 42.5426, longitude: -70.9368 };
@@ -98,4 +98,14 @@ test("the rink filter lists only rinks that actually have sessions", () => {
     { id: "quiet", name: "Quiet Rink", town: "Nowhere" }
   ];
   assert.deepEqual(rinkOptions([event({})], sources), [{ id: "peabody", name: "McVann-O'Keefe", town: "Peabody" }]);
+});
+
+test("a time range drops the repeated meridiem but keeps it when the range crosses over", () => {
+  const range = (h1, m1, h2, m2) => formatTimeRange(
+    easternToUtc(2026, 10, 8, h1, m1, 0).toISOString(),
+    easternToUtc(2026, 10, 8, h2, m2, 0).toISOString()
+  );
+  assert.equal(range(20, 15, 21, 45), "8:15 – 9:45 PM");
+  assert.equal(range(11, 45, 13, 30), "11:45 AM – 1:30 PM");
+  assert.equal(range(9, 5, 10, 50), "9:05 – 10:50 AM");
 });

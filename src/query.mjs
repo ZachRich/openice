@@ -43,8 +43,14 @@ export function easternWeekday(value) {
 
 export function formatDayLabel(value) { return dayLabelFormat.format(new Date(value)); }
 export function formatShortDay(value) { return shortDayFormat.format(new Date(value)); }
+/** "8:15 – 9:45 PM", but "11:45 AM – 1:30 PM" when the range crosses noon or midnight. */
 export function formatTimeRange(start, end) {
-  return `${timeFormat.format(new Date(start))} – ${timeFormat.format(new Date(end))}`;
+  const from = timeFormat.format(new Date(start));
+  const to = timeFormat.format(new Date(end));
+  const fromMeridiem = from.slice(-2);
+  return fromMeridiem === to.slice(-2)
+    ? `${from.slice(0, -3)} – ${to}`
+    : `${from} – ${to}`;
 }
 
 /** Midnight Eastern on a YYYY-MM-DD date, as a UTC instant. */

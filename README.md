@@ -1,8 +1,8 @@
-# North Shore Ice Finder
+# OpenIce
 
 A small, dependency-free site that consolidates publicly posted **stick & puck**, **pickup
 hockey**, and **public skate** sessions at rinks around Peabody, MA (01960), and lets you search
-them by ZIP code and radius.
+them by ZIP code and radius. Headed for **openice.us**; currently runs locally.
 
 ## Run it
 
@@ -25,6 +25,18 @@ Useful environment variables:
 | `HOST` | `127.0.0.1` | Set to `0.0.0.0` to reach it from your phone on the same network |
 | `REFRESH_MINUTES` | `360` | How often to re-read every source |
 | `HOME_ZIP` | `01960` | The ZIP the site defaults to |
+
+## Look
+
+The interface is built on one idea taken from the sheet itself: a red centre line opens each day,
+blue lines divide the sessions, and distance is set like a jersey number. Flat surfaces, heavy
+weight contrast, no rounded corners and no drop shadows anywhere. `public/styles.css` is the whole
+system — the rules are documented at the top of the file, and `CLAUDE_HANDOFF.md` lists the ones
+worth not breaking.
+
+Type is Archivo from Google Fonts, the one external request the site makes. It falls back to
+Helvetica/Arial with the same weights, so the design survives with no network — which is the
+normal case when this runs on a home machine.
 
 ## Pages
 
