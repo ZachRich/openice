@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "refresh": "node server.mjs --refresh"
+    "refresh": "node server.mjs --refresh",
+    "test": "node --test \"test/*.test.mjs\"",
+    "capture": "node scripts/capture.mjs"
   }
 }

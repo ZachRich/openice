@@ -25,6 +25,8 @@ No package installation is required; this is Node ESM using built-in APIs.
   - `weekly`: creates date-bounded recurring sessions from a published schedule, and verifies a required phrase remains on the source page every refresh.
 - `server.mjs` — local HTTP server and refresh loop.
 - `public/` — dashboard interface.
+- `test/` — offline fixture-based tests (`npm test`); `scripts/capture.mjs` snapshots a live
+  source into `test/fixtures/` from a networked machine.
 
 ## Current live sources (verified Sep. 9, 2026)
 
@@ -38,6 +40,18 @@ No package installation is required; this is Node ESM using built-in APIs.
 
 Disabled placeholders: Essex Sports Center (DaySmart) and Burbank Ice Arena. Do not enable either until a public, stable source is confirmed.
 
+## Recurrence handling
+
+`src/ical.mjs` expands `RRULE` in **Eastern calendar days**, not UTC days. Two things depend on
+this: a weekly series must keep its wall-clock time when daylight saving ends, and `BYDAY` must
+match the local weekday (8:15 PM Thursday Eastern is already Friday in UTC). Occurrences are then
+removed if they are listed in `EXDATE`, or if another `VEVENT` claims that instance through
+`RECURRENCE-ID` — cancelled or rescheduled. Anything that changes this function needs a fixture
+proving the excluded instance stays excluded.
+
+Not supported yet: `RECURRENCE-ID;RANGE=THISANDFUTURE`, `RDATE`, and `FREQ` values other than
+`WEEKLY` and `DAILY` (those fall back to the single `DTSTART`).
+
 ## Data-quality rules
 
 1. Use only publicly reachable schedule pages or public iCalendar feeds; never use logged-in booking endpoints.
@@ -48,16 +62,25 @@ Disabled placeholders: Essex Sports Center (DaySmart) and Burbank Ice Arena. Do 
 
 ## Good next work
 
-1. Research a public, reliable schedule source for Hockeytown Saugus or Essex Sports Center. Add an adapter only after verifying live, future Stick & Puck rows.
-2. Build a generic adapter for additional public calendar platforms only when their HTML structure is stable and testable.
-3. Improve the dashboard’s source-health labels to use rink names instead of source IDs.
-4. Add a small test fixture per adapter before supporting more site layouts.
+1. Keep a source's previous events when its fetch fails. `refresh()` rebuilds `data/events.json`
+   from only the sources that succeeded this pass, so one timeout drops that rink entirely for up
+   to six hours. Retain the prior events and mark them stale instead.
+2. Improve the dashboard’s source-health labels to use rink names instead of source IDs.
+3. Research a public, reliable schedule source for Hockeytown Saugus or Essex Sports Center. Add
+   an adapter only after verifying live, future Stick & Puck rows.
+4. Build a generic adapter for additional public calendar platforms only when their HTML structure
+   is stable and testable.
+5. Capture a live fixture per source (`npm run capture -- all`) so the suite tests real markup
+   alongside the hand-built fixtures.
+6. Centralize the 60-day collection window and the home coordinate; they are duplicated across
+   the adapters, and `/api/events` accepts up to 90 days that nothing ever collects.
 
 ## Verification
 
 After changes, run:
 
 ```sh
+npm test
 npm run refresh
 ```
 

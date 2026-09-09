@@ -7,11 +7,31 @@ A small, dependency-free dashboard that consolidates publicly posted stick & puc
 Requires Node 20 or later.
 
 ```sh
-cd /Users/zachrich/Documents/Codex/2026-09-08/im-x20/outputs/northshore-ice-finder
+cd ~/Dev/Web-Projects/northshore-ice-finder
 npm start
 ```
 
 Then open `http://localhost:3030`. The server refreshes data immediately at startup and every six hours. Change the interval with `REFRESH_MINUTES=120 npm start` (minimum: 10 minutes). To refresh just once, use `npm run refresh`.
+
+## Tests
+
+```sh
+npm test
+```
+
+The suite runs offline against saved fixtures in `test/fixtures/` — no network, no
+dependencies. It covers each adapter, Eastern-time conversion across the daylight-saving
+change, and the recurrence rules that decide whether a session is real.
+
+The committed fixtures are hand-built to match the structures these sites publish. To check a
+parser against the real thing, snapshot a live page from a machine with internet access:
+
+```sh
+npm run capture -- peabody-mcvann-okeefe
+npm run capture -- all
+```
+
+Captured files land in `test/fixtures/live-<source-id>.<ext>`.
 
 ## Add rinks safely
 

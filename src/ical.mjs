@@ -4,6 +4,7 @@ export function parseIcalSchedule(ics, source, { from = new Date(), days = 60 } 
   const unfolded = ics.replace(/\r?\n[ \t]/g, "");
   const blocks = unfolded.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) ?? [];
   const windowEnd = new Date(from.getTime() + days * DAY_MS);
+  const overridden = collectOverrides(blocks);
   const seen = new Set();
   const events = [];
 
@@ -17,9 +18,15 @@ export function parseIcalSchedule(ics, source, { from = new Date(), days = 60 } 
     const end = parseIcalDate(fields.DTEND) ?? addMinutes(start, 60);
     if (!start) continue;
     const duration = Math.max(5, Math.round((end - start) / 60000));
+    const uid = fields.UID ?? summary;
+    const skip = exceptionDates(fields.EXDATE);
+    // A VEVENT carrying RECURRENCE-ID replaces one instance of a series. The master rule
+    // must stop generating that slot, whether the replacement cancels it or moves it.
+    if (!fields["RECURRENCE-ID"]) for (const iso of overridden.get(uid) ?? []) skip.add(iso);
 
     for (const occurrence of expandOccurrences(start, fields.RRULE, from, windowEnd)) {
-      const key = `${source.id}:${fields.UID ?? summary}:${occurrence.toISOString()}`;
+      if (skip.has(occurrence.toISOString())) continue;
+      const key = `${source.id}:${uid}:${occurrence.toISOString()}`;
       if (seen.has(key)) continue;
       seen.add(key);
       events.push({
@@ -51,7 +58,9 @@ function readFields(block) {
     const divider = line.indexOf(":");
     if (divider < 0) continue;
     const name = line.slice(0, divider).split(";")[0];
-    result[name] = line.slice(divider + 1);
+    const value = line.slice(divider + 1);
+    // EXDATE is allowed to repeat across lines; keep every value instead of the last one.
+    result[name] = name === "EXDATE" && result.EXDATE ? `${result.EXDATE},${value}` : value;
   }
   return result;
 }
@@ -82,31 +91,80 @@ export function easternToUtc(year, month, day, hour, minute, second) {
   return new Date(guess);
 }
 
+function collectOverrides(blocks) {
+  const overrides = new Map();
+  for (const block of blocks) {
+    const fields = readFields(block);
+    const recurrenceId = parseIcalDate(fields["RECURRENCE-ID"]);
+    if (!recurrenceId) continue;
+    const uid = fields.UID ?? "";
+    if (!overrides.has(uid)) overrides.set(uid, new Set());
+    overrides.get(uid).add(recurrenceId.toISOString());
+  }
+  return overrides;
+}
+
+function exceptionDates(value) {
+  const dates = new Set();
+  for (const part of (value ?? "").split(",")) {
+    const date = parseIcalDate(part);
+    if (date) dates.add(date.toISOString());
+  }
+  return dates;
+}
+
+const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+// A calendar date held as noon UTC, so adding a day is always exactly one day.
+function civilDay(year, month, day) { return Date.UTC(year, month - 1, day, 12); }
+
+function easternParts(date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+  }).formatToParts(date).reduce((out, part) => ({ ...out, [part.type]: part.value }), {});
+  return { year: +parts.year, month: +parts.month, day: +parts.day, hour: +parts.hour, minute: +parts.minute, second: +parts.second };
+}
+
+// Recurrence is counted in Eastern calendar days, not in UTC. Stepping through UTC would
+// shift a series by an hour once daylight saving ends, and would read the weekday of the
+// wrong day for any evening session (8:15 PM Thursday is already Friday in UTC).
 function expandOccurrences(start, rrule, from, through) {
   if (!rrule) return start >= from && start <= through ? [start] : [];
   const rule = Object.fromEntries(rrule.split(";").map(item => item.split("=")));
-  const interval = Number(rule.INTERVAL ?? 1);
-  const count = Number(rule.COUNT ?? Infinity);
-  const until = parseIcalDate(rule.UNTIL);
   const weekly = rule.FREQ === "WEEKLY";
   const daily = rule.FREQ === "DAILY";
   if (!weekly && !daily) return start >= from && start <= through ? [start] : [];
-  const byDay = (rule.BYDAY ?? "").split(",").filter(Boolean);
-  const dayIndex = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+
+  const interval = Math.max(1, Number(rule.INTERVAL ?? 1));
+  const count = Number(rule.COUNT ?? Infinity);
+  const until = parseIcalDate(rule.UNTIL);
+  const byDay = (rule.BYDAY ?? "").split(",").filter(Boolean).map(day => day.slice(-2));
+  const wall = easternParts(start);
+  const firstDay = civilDay(wall.year, wall.month, wall.day);
+  const startWeekday = new Date(firstDay).getUTCDay();
+
   const result = [];
-  const cursor = new Date(start);
   let generated = 0;
   const hardStop = Math.min(1000, count);
-  while (cursor <= through && generated < hardStop && (!until || cursor <= until)) {
-    const weeksFromStart = Math.floor((cursor - start) / (7 * DAY_MS));
+
+  for (let cursor = firstDay; generated < hardStop; cursor += DAY_MS) {
+    const day = new Date(cursor);
+    const occurrence = easternToUtc(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), wall.hour, wall.minute, wall.second);
+    if (occurrence > through) break;
+    if (until && occurrence > until) break;
+
+    const dayOffset = Math.round((cursor - firstDay) / DAY_MS);
     const include = daily
-      ? Math.floor((cursor - start) / DAY_MS) % interval === 0
-      : weeksFromStart % interval === 0 && (byDay.length === 0 ? cursor.getUTCDay() === start.getUTCDay() : byDay.includes(Object.keys(dayIndex).find(key => dayIndex[key] === cursor.getUTCDay())));
-    if (include) {
-      generated++;
-      if (cursor >= from) result.push(new Date(cursor));
-    }
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
+      ? dayOffset % interval === 0
+      : Math.floor(dayOffset / 7) % interval === 0 && (byDay.length === 0
+        ? day.getUTCDay() === startWeekday
+        : byDay.includes(WEEKDAY_CODES[day.getUTCDay()]));
+    if (!include) continue;
+
+    // COUNT limits what the rule generates; EXDATE removes some of them afterwards.
+    generated++;
+    if (occurrence >= from) result.push(occurrence);
   }
   return result;
 }
