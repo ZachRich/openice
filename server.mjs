@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { collect } from "./src/collectors.mjs";
+import { mergeCollection } from "./src/merge.mjs";
 import { lookupZip, ZipError, normalizeZip } from "./src/geocode.mjs";
 import { searchEvents, rinkOptions, TYPE_IDS, DEFAULT_RADIUS_MILES, RADIUS_CHOICES, HOUR_CHOICES } from "./src/query.mjs";
 import { homePage, searchPage, rinksPage, rinkPage, aboutPage, notFoundPage } from "./src/pages.mjs";
@@ -37,30 +38,26 @@ async function saveJson(filename, value) {
 export async function refresh() {
   if (refreshing) return { skipped: true, message: "A refresh is already running." };
   refreshing = true;
-  const sources = await readJson(sourcesPath);
-  const prior = await readEvents();
-  const sourceStatus = { ...prior.sourceStatus };
-  const collected = [];
 
   try {
+    const sources = await readJson(sourcesPath);
+    const prior = await readEvents();
+    const outcomes = [];
+
     for (const source of sources) {
       if (!source.enabled) {
-        sourceStatus[source.id] = { state: "disabled", checkedAt: new Date().toISOString(), message: source.notes };
+        outcomes.push({ id: source.id, state: "disabled", message: source.notes });
         continue;
       }
       try {
         const result = await collect(source);
-        collected.push(...result.events);
-        sourceStatus[source.id] = { state: result.status, checkedAt: new Date().toISOString(), message: result.message, count: result.events.length };
+        outcomes.push({ id: source.id, state: result.status, events: result.events, message: result.message });
       } catch (error) {
-        sourceStatus[source.id] = { state: "error", checkedAt: new Date().toISOString(), message: error.message };
+        outcomes.push({ id: source.id, state: "error", message: error.message });
       }
     }
-    const next = {
-      updatedAt: new Date().toISOString(),
-      events: collected.sort((a, b) => new Date(a.start) - new Date(b.start)),
-      sourceStatus
-    };
+
+    const next = mergeCollection({ sources, prior, outcomes });
     await saveJson(dataPath, next);
     return next;
   } finally {

@@ -132,6 +132,13 @@ refresh and stops rather than silently carrying a stale semester schedule forwar
 Essex Sports Center and Burbank Ice Arena are recorded but disabled: their public pages do not
 offer a confirmed, stable machine-readable schedule. This avoids treating guessed data as live.
 
+## When a rink's page is down
+
+A source that fails to fetch keeps the schedule it last published rather than disappearing, and
+every held-over session is marked with the date it was last confirmed. After 48 hours without a
+successful check the sessions are dropped — an unconfirmed schedule is worth showing for a day,
+not for a week. Source health on `/rinks` and `/about` says which rinks are in that state.
+
 ## Limits to keep in mind
 
 Rinks frequently cancel walk-on ice for rentals and events, often without updating the public

@@ -188,6 +188,7 @@ a { color: var(--blue-ink); }
 .summary strong { color: var(--ink); font-weight: 700; }
 .notice { border-left: 5px solid var(--blue); background: var(--tint); padding: 12px 16px; color: var(--dim); }
 .notice.error { border-left-color: var(--red); color: var(--red); font-weight: 600; background: var(--ice); }
+.notice.warn { border-left-color: var(--gold); }
 .checked { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--hair); }
 
 /* ---------------------------------------------------------------- sessions */
@@ -223,6 +224,10 @@ a { color: var(--blue-ink); }
 .event-where { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: .87rem; margin-top: 2px; }
 .event-where .icon { width: 15px; height: 15px; }
 .event-title { color: var(--dim); font-size: .8rem; font-style: italic; margin-top: 2px; }
+.stale {
+  display: inline-block; margin-top: 5px; padding: 2px 8px;
+  background: var(--gold); color: #241c00; font-size: .72rem; font-weight: 700;
+}
 
 .event-side { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .distance { font-weight: 700; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-variant-numeric: tabular-nums; }
@@ -271,7 +276,7 @@ a { color: var(--blue-ink); }
 .state i { width: 10px; height: 10px; background: var(--dim); }
 .state.ok i { background: var(--ok); }
 .state.error i { background: var(--red); }
-.state.disabled i, .state.needs-adapter i { background: var(--gold); }
+.state.disabled i, .state.needs-adapter i, .state.stale i { background: var(--gold); }
 
 .rules { color: var(--dim); padding-left: 1.1rem; max-width: 66ch; }
 .rules li { margin-bottom: .55rem; }

@@ -13,6 +13,11 @@ const STATE_LABEL = {
 
 function stateBadge(status) {
   const state = status?.state ?? "unknown";
+  if (state === "error") {
+    return status.retained
+      ? `<span class="state stale"><i></i>Showing last known schedule</span>`
+      : `<span class="state error"><i></i>Last check failed</span>`;
+  }
   return `<span class="state ${attr(state)}"><i></i>${escapeHtml(STATE_LABEL[state] ?? "Unknown")}</span>`;
 }
 
@@ -112,6 +117,14 @@ function timeClause(query) {
 }
 
 export function searchPage({ query, result, rinks, location, error, updatedAt }) {
+  const heldOver = result.events.filter(event => event.staleSince).length;
+  const staleNotice = heldOver > 0
+    ? `<p class="notice warn">${heldOver === result.total
+        ? "These sessions could not be re-checked just now"
+        : `${heldOver} of these sessions could not be re-checked just now`} —
+       the rink's page was unreachable, so this is the last schedule it published. Each one is marked
+       with the date it was last confirmed.</p>` : "";
+
   const summary = error
     ? `<p class="notice error">${escapeHtml(error)}</p>`
     : `<p class="summary">Showing <strong>${result.total}</strong> ${result.total === 1 ? "session" : "sessions"}
@@ -130,6 +143,7 @@ export function searchPage({ query, result, rinks, location, error, updatedAt })
   <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> Search results</nav>
   ${searchForm({ query, rinks })}
   ${summary}
+  ${staleNotice}
   ${result.total === 0 && !error ? empty : dayGroups(result.days)}
   <p class="fine checked">Schedules last checked ${escapeHtml(lastChecked(updatedAt))}.
     <a href="/about">Where this comes from</a></p>

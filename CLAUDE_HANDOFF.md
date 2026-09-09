@@ -82,6 +82,19 @@ Chosen deliberately over two alternatives; do not drift back toward generic card
 several rinks title a lesson programme "Learn To Skate", which would otherwise match the skate
 patterns. Widening it means adding a fixture case in `test/ical.test.mjs` at the same time.
 
+## Stale sources
+
+`src/merge.mjs` decides what a refresh keeps, and it is a pure function so it can be tested
+without touching the network. A source that fails keeps the schedule it last returned, with every
+held-over event marked `staleSince`, until that becomes older than `STALE_LIMIT_HOURS` (48) — past
+that the events are dropped and the status carries `dropped: true`, so the page can say the
+sessions went away rather than silently showing nothing. `lastSuccessAt` survives repeated
+failures; only a success moves it.
+
+The reasoning: a failed fetch is nearly always transient, and yesterday's schedule for a rink is
+much closer to the truth than no schedule. But an unconfirmed schedule is worth showing for a day,
+not for a week.
+
 ## Data-quality rules
 
 1. Use only publicly reachable schedule pages or public iCalendar feeds; never use logged-in booking endpoints.
@@ -92,10 +105,7 @@ patterns. Widening it means adding a fixture case in `test/ical.test.mjs` at the
 
 ## Good next work
 
-1. Keep a source's previous events when its fetch fails. `refresh()` rebuilds `data/events.json`
-   from only the sources that succeeded this pass, so one timeout drops that rink entirely for up
-   to six hours. Retain the prior events and mark them stale instead.
-2. Improve the dashboard’s source-health labels to use rink names instead of source IDs.
+1. Improve the source-health labels to use rink names instead of source IDs.
 3. Research a public, reliable schedule source for Hockeytown Saugus or Essex Sports Center. Add
    an adapter only after verifying live, future Stick & Puck rows.
 4. Build a generic adapter for additional public calendar platforms only when their HTML structure

@@ -1,7 +1,7 @@
 import { icon } from "./icons.mjs";
 import {
   SESSION_TYPES, TYPE_IDS, WEEKDAYS, RADIUS_CHOICES, HOUR_CHOICES, DEFAULT_RADIUS_MILES,
-  formatTimeRange, typeLabel
+  formatShortDay, formatTimeRange, typeLabel
 } from "./query.mjs";
 
 export function escapeHtml(value) {
@@ -72,6 +72,9 @@ export function eventCard(event) {
     ? `<p class="distance"><b>${event.distanceMiles}</b>miles</p>` : "";
   const posted = event.title && event.title.toLowerCase() !== typeLabel(event.type).toLowerCase()
     ? `<p class="event-title">Posted as &ldquo;${escapeHtml(event.title)}&rdquo;</p>` : "";
+  // Held over from an earlier check because the rink's page could not be reached.
+  const stale = event.staleSince
+    ? `<p class="stale">Last confirmed ${escapeHtml(formatShortDay(event.staleSince))} — the rink's page is currently unreachable</p>` : "";
 
   return `<article class="event-card">
   <div class="event-time">
@@ -82,6 +85,7 @@ export function eventCard(event) {
     <p class="event-rink"><a href="/rinks/${attr(event.rinkId)}">${escapeHtml(event.rink)}</a></p>
     <p class="event-where">${icon("pin")}${escapeHtml(event.address ?? event.town ?? "")}</p>
     ${posted}
+    ${stale}
   </div>
   <div class="event-side">
     ${distance}
