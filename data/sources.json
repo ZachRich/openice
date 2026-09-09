@@ -35,7 +35,8 @@
     "feedUrl": "https://www.stoneham-ma.gov/common/modules/iCalendar/iCalendar.aspx?catID=26&feed=calendar",
     "sourceUrl": "https://www.stoneham-ma.gov/calendar.aspx?CID=26",
     "enabled": true,
-    "notes": "Official Arena iCalendar. Adult Stick Practice requires advance registration by email; listed cost is $20."
+    "notes": "Official Arena iCalendar. Adult Stick Practice requires advance registration by email; listed cost is $20.",
+    "price": "$20.00"
   },
   {
     "id": "ed-burns-arena",
@@ -67,7 +68,9 @@
         "type": "stick-puck",
         "startsOn": "2026-10-19",
         "endsOn": "2026-12-07",
-        "weekdays": [1],
+        "weekdays": [
+          1
+        ],
         "start": "12:00",
         "durationMinutes": 60,
         "description": "Fall 2026 Salem State schedule. Complete the facility access waiver before your first visit."

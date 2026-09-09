@@ -1,4 +1,4 @@
-import { classifyHockeyEvent, easternToUtc } from "./ical.mjs";
+import { classifyIceEvent, easternToUtc } from "./ical.mjs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,7 +19,7 @@ export function parseMyRecSchedule(html, source, { from = new Date(), days = 60 
     const timeMatch = text.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)\s+(.+)/i);
     if (!timeMatch) continue;
     const [, startsAt, endsAt, title] = timeMatch;
-    const type = classifyHockeyEvent(title);
+    const type = classifyIceEvent(title);
     if (!type) continue;
     const start = easternFromParts(currentDate, startsAt);
     const end = easternFromParts(currentDate, endsAt);
@@ -59,7 +59,6 @@ function eventFrom(source, { title, type, start, end, description }) {
     longitude: source.longitude,
     title: title.trim(), type, start: start.toISOString(), end: end.toISOString(),
     registrationUrl: source.sourceUrl, sourceUrl: source.sourceUrl, description,
-    distanceMiles: distanceMiles(42.5426, -70.9368, source.latitude, source.longitude),
     pulledAt: new Date().toISOString()
   };
 }
@@ -92,9 +91,3 @@ function easternFromDate(date, hhmm) {
 }
 
 function dedupe(events) { return [...new Map(events.map(event => [event.id, event])).values()]; }
-
-function distanceMiles(lat1, lon1, lat2, lon2) {
-  const radians = value => value * Math.PI / 180;
-  const a = Math.sin(radians(lat2 - lat1) / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(radians(lon2 - lon1) / 2) ** 2;
-  return Math.round(3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
-}

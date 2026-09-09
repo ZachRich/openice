@@ -1,6 +1,8 @@
 # North Shore Ice Finder
 
-A small, dependency-free dashboard that consolidates publicly posted stick & puck, stick time, and pickup-hockey schedules around Peabody, MA (01960).
+A small, dependency-free site that consolidates publicly posted **stick & puck**, **pickup
+hockey**, and **public skate** sessions at rinks around Peabody, MA (01960), and lets you search
+them by ZIP code and radius.
 
 ## Run it
 
@@ -11,7 +13,53 @@ cd ~/Dev/Web-Projects/northshore-ice-finder
 npm start
 ```
 
-Then open `http://localhost:3030`. The server refreshes data immediately at startup and every six hours. Change the interval with `REFRESH_MINUTES=120 npm start` (minimum: 10 minutes). To refresh just once, use `npm run refresh`.
+Then open `http://localhost:3030`. The server refreshes data immediately at startup and every six
+hours. Change the interval with `REFRESH_MINUTES=120 npm start` (minimum: 10 minutes). To refresh
+just once without starting the server, use `npm run refresh`.
+
+Useful environment variables:
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `PORT` | `3030` | Port to listen on |
+| `HOST` | `127.0.0.1` | Set to `0.0.0.0` to reach it from your phone on the same network |
+| `REFRESH_MINUTES` | `360` | How often to re-read every source |
+| `HOME_ZIP` | `01960` | The ZIP the site defaults to |
+
+## Pages
+
+| Route | What it is |
+| --- | --- |
+| `/` | Session types, ZIP search, how it works, coverage, FAQ |
+| `/search` | Results: ZIP + radius, session type, rink, weekday, and date range filters |
+| `/rinks` | Every rink, including ones deliberately not indexed, with source health |
+| `/rinks/<id>` | One rink: address, directions, health, everything upcoming there |
+| `/about` | The rules the collector follows, source health table, manual refresh |
+
+The pages are rendered on the server and every filter is a plain GET form, so search results are
+linkable and the site works with JavaScript switched off. `public/app.js` only saves you a click.
+
+`GET /api/events`, `GET /api/sources`, and `POST /api/refresh` remain available for scripting.
+
+## Session types
+
+A session is indexed only when the rink's own title says what it is:
+
+| Type | Matches titles like |
+| --- | --- |
+| `stick-puck` | Stick & Puck, Stick Time, Stick Practice |
+| `pickup` | Pickup Hockey, Open Hockey, Drop-in Hockey |
+| `public-skate` | Public Skate, Open Skate, Family Skate |
+
+Lessons, clinics, leagues, games, freestyle and figure-skating ice are excluded — they are not
+sessions you can turn up to.
+
+## ZIP search
+
+The first search for a ZIP asks a public geocoder for its coordinates and caches the answer in
+`data/zipcodes.json`, so each ZIP costs one request ever. 01960 ships in that cache, so the site
+works before it has ever had network access. Distance is straight-line from the ZIP's centre,
+not drive time.
 
 ## Tests
 
@@ -19,9 +67,8 @@ Then open `http://localhost:3030`. The server refreshes data immediately at star
 npm test
 ```
 
-The suite runs offline against saved fixtures in `test/fixtures/` — no network, no
-dependencies. It covers each adapter, Eastern-time conversion across the daylight-saving
-change, and the recurrence rules that decide whether a session is real.
+43 tests, offline, no dependencies. They cover each adapter, Eastern-time conversion across the
+daylight-saving change, session classification, every search filter, and ZIP lookup.
 
 The committed fixtures are hand-built to match the structures these sites publish. To check a
 parser against the real thing, snapshot a live page from a machine with internet access:
@@ -48,37 +95,33 @@ Edit `data/sources.json`. An iCalendar (`.ics`) feed is the most reliable source
   "adapter": "ical",
   "feedUrl": "https://example.org/public.ics",
   "sourceUrl": "https://example.org/schedule",
+  "price": "$20.00",
   "enabled": true
 }
 ```
 
-The collector only saves calendar events whose titles look like `Stick & Puck`, `Stick Time`, `Stick Practice`, `Open Hockey`, or `Pickup Hockey`. Pickup stays hidden in the dashboard unless the user enables it.
+`price` is optional and shown as-is; leave it out and the card says "No price listed".
 
-For public pages without iCalendar, use a deliberate adapter instead of treating a page as a feed. This build includes `myrec` for municipal MyRec event lists and `weekly` for a published, date-bounded weekly schedule. The weekly adapter checks for an identifying phrase on every refresh and stops rather than silently carrying a stale semester schedule forward.
+For public pages without iCalendar, use a deliberate adapter rather than treating a page as a
+feed. This build includes `myrec` for municipal MyRec event lists and `weekly` for a published,
+date-bounded weekly schedule. The weekly adapter checks for an identifying phrase on every
+refresh and stops rather than silently carrying a stale semester schedule forward.
 
-## Verified public feeds near 01960
+## Currently indexed
 
-The dashboard currently indexes these continuously updating, official public feeds:
-
-| Rink | Feed | Current program matched |
+| Rink | Town | Adapter |
 | --- | --- | --- |
-| McVann–O'Keefe Memorial Rink, Peabody | Google Calendar iCalendar | Stick Time |
-| Stoneham Arena, Stoneham | CivicPlus iCalendar | Adult Stick Practice |
+| McVann–O'Keefe Memorial Rink | Peabody | Google Calendar iCalendar |
+| Stoneham Arena | Stoneham | CivicPlus iCalendar |
+| Ed Burns Arena | Arlington | MyRec public calendar |
+| LoConte Ice Rink | Medford | MyRec public calendar |
+| Rockett Arena, Salem State | Salem | Verified weekly schedule |
 
-The Essex and Burbank records are intentionally disabled: their current public pages do not offer a confirmed, stable machine-readable calendar feed. This avoids treating stale or guessed schedule data as live. Other nearby rinks that publish a web-only schedule can be added with a separate source adapter, rather than pretending their pages are iCalendar feeds.
-
-## Verified web-schedule adapters
-
-| Rink | Adapter | What it indexes |
-| --- | --- | --- |
-| Ed Burns Arena, Arlington | MyRec public calendar | Men's, women's, family, and youth Stick & Puck listings |
-| LoConte Ice Rink, Medford | MyRec public calendar | Future Stick & Puck listings when the rink posts them |
-| Rockett Arena, Salem State | Verified weekly schedule | Fall 2026 Monday Stick and Puck, through December 7 |
-
-## Keeping it running
-
-Leave `npm start` running on a machine that has internet access. For an always-on personal setup, run it on a small home server, NAS, or a hosted Node service. The dashboard’s **Refresh schedules** button triggers the same collection immediately.
+Essex Sports Center and Burbank Ice Arena are recorded but disabled: their public pages do not
+offer a confirmed, stable machine-readable schedule. This avoids treating guessed data as live.
 
 ## Limits to keep in mind
 
-Rinks frequently cancel walk-on ice for rentals or events. The dashboard retains a source-health message and links every event back to its rink page, so you can verify before driving over. Do not reuse a rink's private booking API or authenticated account credentials in this tool.
+Rinks frequently cancel walk-on ice for rentals and events, often without updating the public
+page. Every session links back to its source so you can verify before driving over. Do not reuse
+a rink's private booking API or authenticated account credentials in this tool.

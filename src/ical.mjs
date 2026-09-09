@@ -11,7 +11,7 @@ export function parseIcalSchedule(ics, source, { from = new Date(), days = 60 } 
   for (const block of blocks) {
     const fields = readFields(block);
     const summary = decodeIcal(fields.SUMMARY ?? "");
-    const type = classifyHockeyEvent(summary);
+    const type = classifyIceEvent(summary);
     if (!type || fields.STATUS === "CANCELLED") continue;
 
     const start = parseIcalDate(fields.DTSTART);
@@ -44,7 +44,6 @@ export function parseIcalSchedule(ics, source, { from = new Date(), days = 60 } 
         registrationUrl: source.sourceUrl,
         sourceUrl: source.sourceUrl,
         description: decodeIcal(fields.DESCRIPTION ?? ""),
-        distanceMiles: distanceMiles(42.5426, -70.9368, source.latitude, source.longitude),
         pulledAt: new Date().toISOString()
       });
     }
@@ -118,7 +117,7 @@ const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 // A calendar date held as noon UTC, so adding a day is always exactly one day.
 function civilDay(year, month, day) { return Date.UTC(year, month - 1, day, 12); }
 
-function easternParts(date) {
+export function easternParts(date) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
@@ -169,22 +168,24 @@ function expandOccurrences(start, rrule, from, through) {
   return result;
 }
 
-export function classifyHockeyEvent(title) {
+// Lessons, clinics and figure-skating ice are not walk-on sessions, and several rinks
+// title them with words that would otherwise match below ("Learn To Skate").
+const NOT_A_WALK_ON = /learn[ -]?to[ -]?skate|skating (?:lesson|school|class)|clinic|freestyle|figure skat|hockey (?:league|game|practice|clinic|camp)|tournament|birthday/;
+
+export function classifyIceEvent(title) {
   const text = title.toLowerCase();
-  if (/pick[ -]?up hockey|open hockey/.test(text)) return "pickup";
+  if (NOT_A_WALK_ON.test(text)) return null;
+  if (/pick[ -]?up hockey|open hockey|drop[ -]?in hockey/.test(text)) return "pickup";
   if (/stick\s*(?:&|and|n)?\s*puck|stick\s*(?:time|practice)/.test(text)) return "stick-puck";
+  if (/public skate|open skate|family skate|community skate|open freeskate/.test(text)) return "public-skate";
   return null;
 }
+
+/** @deprecated kept so older callers keep working; use classifyIceEvent. */
+export const classifyHockeyEvent = classifyIceEvent;
 
 function decodeIcal(value) {
   return value.replace(/\\n/g, " ").replace(/\\,/g, ",").replace(/\\;/g, ";").trim();
 }
 
 function addMinutes(date, minutes) { return date ? new Date(date.getTime() + minutes * 60000) : null; }
-
-function distanceMiles(lat1, lon1, lat2, lon2) {
-  if (!lat2 || !lon2) return null;
-  const radians = value => value * Math.PI / 180;
-  const a = Math.sin(radians(lat2 - lat1) / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(radians(lon2 - lon1) / 2) ** 2;
-  return Math.round(3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
-}

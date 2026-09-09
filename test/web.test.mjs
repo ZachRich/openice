@@ -14,14 +14,16 @@ test("MyRec rows are attached to the date header above them", () => {
   assert.deepEqual(summarize(arlington()), [
     "2026-10-05 12:00 stick-puck Mens' Stick & Puck",
     "2026-10-05 13:30 stick-puck Womens' Stick & Puck",
+    "2026-10-05 15:00 public-skate Public Skate",
     "2026-10-07 10:00 stick-puck Family Stick & Puck",
     "2026-11-05 20:15 stick-puck Mens' Stick & Puck Main Rink"
   ]);
 });
 
-test("MyRec ignores non-hockey programs", () => {
+test("MyRec keeps public skate but drops lesson programs", () => {
   const titles = arlington().map(event => event.title);
-  assert.ok(!titles.some(title => /Public Skate|Learn To Skate/i.test(title)));
+  assert.ok(titles.some(title => /Public Skate/i.test(title)), "public skate is a session you can turn up to");
+  assert.ok(!titles.some(title => /Learn To Skate/i.test(title)), "a lesson programme is not walk-on ice");
 });
 
 test("MyRec ignores a row that appears before any date header", () => {

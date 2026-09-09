@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseIcalSchedule, classifyHockeyEvent, easternToUtc } from "../src/ical.mjs";
+import { parseIcalSchedule, classifyIceEvent, easternToUtc } from "../src/ical.mjs";
 import { fixture, source, eastern, summarize } from "./helpers.mjs";
 
 const from = new Date("2026-10-01T00:00:00Z");
@@ -53,10 +53,14 @@ test("BYDAY matches the Eastern weekday for a late-evening series", () => {
   assert.equal(evening.length, 4);
 });
 
-test("non-hockey and cancelled events are excluded", () => {
-  const titles = peabody().map(event => event.title);
-  assert.ok(!titles.includes("PUBLIC SKATE"));
+test("a cancelled event is excluded", () => {
   assert.equal(peabody().filter(event => eastern(event.start) === "2026-10-14 19:00").length, 0);
+});
+
+test("public skate is collected as its own type", () => {
+  const skate = peabody().filter(event => event.type === "public-skate");
+  assert.equal(skate.length, 1);
+  assert.equal(eastern(skate[0].start), "2026-10-12 14:00");
 });
 
 test("pickup hockey is classified separately", () => {
@@ -76,6 +80,7 @@ test("the whole Peabody fixture produces exactly the expected schedule", () => {
     "2026-10-06 12:00 stick-puck STICK TIME",
     "2026-10-08 20:15 stick-puck STICK TIME",
     "2026-10-11 13:00 pickup PICKUP HOCKEY (16+)",
+    "2026-10-12 14:00 public-skate PUBLIC SKATE",
     "2026-10-27 14:00 stick-puck STICK TIME",
     "2026-10-29 20:15 stick-puck STICK TIME",
     "2026-11-03 12:00 stick-puck STICK TIME",
@@ -96,23 +101,35 @@ test("floating times are read as Eastern on both sides of the DST change", () =>
   assert.equal(events[1].start, "2026-11-04T17:00:00.000Z", "EST is UTC-5");
 });
 
-test("events are given the source's rink details and a distance", () => {
+test("events carry their rink's details but not a distance", () => {
   const event = peabody()[0];
   assert.equal(event.rink, "Test Rink");
   assert.equal(event.town, "Testville");
   assert.equal(event.sourceUrl, "https://example.org/schedule");
-  assert.equal(typeof event.distanceMiles, "number");
+  assert.equal(typeof event.latitude, "number");
+  // Distance depends on where the visitor searched from, so it belongs to the query.
+  assert.equal(event.distanceMiles, undefined);
 });
 
-test("classifyHockeyEvent recognises the programs we care about", () => {
+test("classifyIceEvent recognises the three session types", () => {
   for (const title of ["Stick & Puck", "STICK TIME", "Stick and Puck Time", "Mens' Stick & Puck", "Adult Stick Practice", "stick n puck"]) {
-    assert.equal(classifyHockeyEvent(title), "stick-puck", title);
+    assert.equal(classifyIceEvent(title), "stick-puck", title);
   }
-  for (const title of ["Pickup Hockey", "Pick-up Hockey", "Open Hockey"]) {
-    assert.equal(classifyHockeyEvent(title), "pickup", title);
+  for (const title of ["Pickup Hockey", "Pick-up Hockey", "Open Hockey", "Drop-in Hockey"]) {
+    assert.equal(classifyIceEvent(title), "pickup", title);
   }
-  for (const title of ["Public Skate", "Learn To Skate", "Youth Hockey Game", "Figure Skating", "Broomball"]) {
-    assert.equal(classifyHockeyEvent(title), null, title);
+  for (const title of ["Public Skate", "PUBLIC SKATE", "Open Skate", "Family Skate", "Community Skate"]) {
+    assert.equal(classifyIceEvent(title), "public-skate", title);
+  }
+});
+
+test("classifyIceEvent rejects ice you cannot walk on to", () => {
+  for (const title of [
+    "Learn To Skate", "Learn-to-Skate Level 3", "Skating Lessons", "Freestyle",
+    "Figure Skating Club", "Youth Hockey Game", "Adult Hockey League",
+    "Mite Hockey Practice", "Holiday Tournament", "Birthday Party Skate", "Broomball", "Curling"
+  ]) {
+    assert.equal(classifyIceEvent(title), null, title);
   }
 });
 

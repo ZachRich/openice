@@ -2,7 +2,9 @@
 
 ## Goal
 
-Maintain a small local dashboard for stick & puck / stick time near ZIP 01960 (Peabody, MA), prioritizing sources within roughly a 45-minute drive. It should refresh public schedules continuously and never invent sessions from a stale or unverified page.
+Maintain a small local site that finds walk-on ice — stick & puck, pickup hockey, and public
+skate — near ZIP 01960 (Peabody, MA), searchable by ZIP and radius. It should refresh public
+schedules continuously and never invent sessions from a stale or unverified page.
 
 ## Run locally
 
@@ -23,8 +25,13 @@ No package installation is required; this is Node ESM using built-in APIs.
 - `src/web.mjs` — public-page adapters:
   - `myrec`: parses date headers and Stick & Puck rows from municipal MyRec calendars.
   - `weekly`: creates date-bounded recurring sessions from a published schedule, and verifies a required phrase remains on the source page every refresh.
-- `server.mjs` — local HTTP server and refresh loop.
-- `public/` — dashboard interface.
+- `src/query.mjs` — every search filter (type, rink, weekday, date range, radius), day grouping,
+  and query-time distance. Session types and weekday lists live here.
+- `src/geocode.mjs` — ZIP -> coordinates, cached in `data/zipcodes.json`; 01960 is pre-seeded.
+- `src/render.mjs` / `src/pages.mjs` / `src/icons.mjs` — server-rendered HTML. Pages are plain
+  strings; every filter is a GET form, so the site works without JavaScript.
+- `server.mjs` — HTTP server, routes, and refresh loop.
+- `public/` — stylesheet and a small progressive-enhancement script.
 - `test/` — offline fixture-based tests (`npm test`); `scripts/capture.mjs` snapshots a live
   source into `test/fixtures/` from a networked machine.
 
@@ -52,6 +59,13 @@ proving the excluded instance stays excluded.
 Not supported yet: `RECURRENCE-ID;RANGE=THISANDFUTURE`, `RDATE`, and `FREQ` values other than
 `WEEKLY` and `DAILY` (those fall back to the single `DTSTART`).
 
+## Session types
+
+`classifyIceEvent` in `src/ical.mjs` is the single gate. It returns `stick-puck`, `pickup`,
+`public-skate`, or null, and it rejects lessons, clinics, leagues, games and freestyle first —
+several rinks title a lesson programme "Learn To Skate", which would otherwise match the skate
+patterns. Widening it means adding a fixture case in `test/ical.test.mjs` at the same time.
+
 ## Data-quality rules
 
 1. Use only publicly reachable schedule pages or public iCalendar feeds; never use logged-in booking endpoints.
@@ -72,8 +86,9 @@ Not supported yet: `RECURRENCE-ID;RANGE=THISANDFUTURE`, `RDATE`, and `FREQ` valu
    is stable and testable.
 5. Capture a live fixture per source (`npm run capture -- all`) so the suite tests real markup
    alongside the hand-built fixtures.
-6. Centralize the 60-day collection window and the home coordinate; they are duplicated across
-   the adapters, and `/api/events` accepts up to 90 days that nothing ever collects.
+6. Centralize the 60-day collection window; it is duplicated across the adapter signatures.
+7. The dashboard is gone; the site is server-rendered. If a page ever needs live updating, add it
+   as progressive enhancement in `public/app.js` rather than moving rendering to the client.
 
 ## Verification
 
