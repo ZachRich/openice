@@ -118,7 +118,7 @@ export function searchPage({ query, result, rinks, location, error, updatedAt })
   ${summary}
   ${result.total === 0 && !error ? empty : dayGroups(result.days)}
   <p class="fine checked">Schedules last checked ${escapeHtml(lastChecked(updatedAt))}.
-    <a href="/about">How this works</a></p>
+    <a href="/about">Where this comes from</a></p>
 </div>`;
 
   return layout({

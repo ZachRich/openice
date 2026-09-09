@@ -216,6 +216,15 @@ if (process.argv.includes("--refresh")) {
 } else {
   const server = http.createServer((request, response) =>
     handler(request, response).catch(error => send(response, 500, JSON.stringify({ error: error.message }))));
+  // A copy left running from an earlier session keeps the port and keeps serving its own
+  // (older) code, which looks exactly like a change that did not take effect.
+  server.on("error", error => {
+    if (error.code !== "EADDRINUSE") throw error;
+    console.error(`Port ${port} is already in use — another copy of OpenIce is probably still running.`);
+    console.error(`  Stop it:  kill $(lsof -ti :${port})`);
+    console.error(`  Or:       PORT=${port + 1} npm start`);
+    process.exit(1);
+  });
   server.listen(port, host, () => console.log(`OpenIce: http://${host}:${port}`));
   refresh().catch(error => console.error("Initial refresh failed:", error.message));
   setInterval(() => refresh().catch(error => console.error("Scheduled refresh failed:", error.message)), refreshMinutes * 60 * 1000).unref();

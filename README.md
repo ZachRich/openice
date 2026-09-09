@@ -42,7 +42,7 @@ normal case when this runs on a home machine.
 
 | Route | What it is |
 | --- | --- |
-| `/` | Session types, ZIP search, how it works, coverage, FAQ |
+| `/` | Session types, ZIP search, what's covered, FAQ |
 | `/search` | Results: ZIP + radius, session type, rink, weekday, and date range filters |
 | `/rinks` | Every rink, including ones deliberately not indexed, with source health |
 | `/rinks/<id>` | One rink: address, directions, health, everything upcoming there |
