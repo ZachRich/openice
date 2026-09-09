@@ -1,0 +1,104 @@
+[
+  {
+    "id": "peabody-mcvann-okeefe",
+    "name": "McVann–O'Keefe Memorial Rink",
+    "town": "Peabody",
+    "address": "511 Lowell St, Peabody, MA 01960",
+    "latitude": 42.5434,
+    "longitude": -70.9559,
+    "adapter": "ical",
+    "feedUrl": "https://calendar.google.com/calendar/ical/9uvagr0d9b7hpsc103gjtlm688%40group.calendar.google.com/public/basic.ics",
+    "sourceUrl": "https://www.peabody-ma.gov/skatingrink/",
+    "enabled": true,
+    "notes": "Official public rink calendar. Stick Time is all ages; pickup is a separate 16+ session."
+  },
+  {
+    "id": "essex-sports-center",
+    "name": "Essex Sports Center",
+    "town": "Middleton",
+    "address": "15 Manning Ave, Middleton, MA 01949",
+    "latitude": 42.5957,
+    "longitude": -71.0167,
+    "adapter": "manual",
+    "sourceUrl": "https://apps.daysmartrecreation.com/dash/?action=schedule%2Flocation",
+    "enabled": false,
+    "notes": "DaySmart-powered schedule. Enable after pasting its public iCal or JSON feed URL into this source."
+  },
+  {
+    "id": "stoneham-arena",
+    "name": "Stoneham Arena",
+    "town": "Stoneham",
+    "address": "101 Montvale Ave, Stoneham, MA 02180",
+    "latitude": 42.4812,
+    "longitude": -71.1003,
+    "adapter": "ical",
+    "feedUrl": "https://www.stoneham-ma.gov/common/modules/iCalendar/iCalendar.aspx?catID=26&feed=calendar",
+    "sourceUrl": "https://www.stoneham-ma.gov/calendar.aspx?CID=26",
+    "enabled": true,
+    "notes": "Official Arena iCalendar. Adult Stick Practice requires advance registration by email; listed cost is $20."
+  },
+  {
+    "id": "ed-burns-arena",
+    "name": "Ed Burns Arena",
+    "town": "Arlington",
+    "address": "422 Summer St, Arlington, MA 02474",
+    "latitude": 42.4197,
+    "longitude": -71.1515,
+    "adapter": "myrec",
+    "feedUrl": "https://arlingtonma.myrec.com/info/calendar/list.aspx?FacilityID=13439&AreaID=0",
+    "sourceUrl": "https://arlingtonma.myrec.com/info/activities/program_details.aspx?ProgramID=29519",
+    "enabled": true,
+    "notes": "Public listing: men's, women's, family, and youth Stick & Puck. Check the rink calendar for changes."
+  },
+  {
+    "id": "rockett-arena",
+    "name": "Rockett Arena",
+    "town": "Salem",
+    "address": "225 Canal St, Salem, MA 01970",
+    "latitude": 42.5106,
+    "longitude": -70.8898,
+    "adapter": "weekly",
+    "feedUrl": "https://www.salemstate.edu/campus-life/campus-life-and-recreation/facility-hours",
+    "sourceUrl": "https://www.salemstate.edu/campus-life/campus-life-and-recreation/facility-hours",
+    "requiredText": "Stick and Puck Time 12-1 pm",
+    "rules": [
+      {
+        "title": "Stick and Puck Time",
+        "type": "stick-puck",
+        "startsOn": "2026-10-19",
+        "endsOn": "2026-12-07",
+        "weekdays": [1],
+        "start": "12:00",
+        "durationMinutes": 60,
+        "description": "Fall 2026 Salem State schedule. Complete the facility access waiver before your first visit."
+      }
+    ],
+    "enabled": true,
+    "notes": "Published semester schedule; the adapter verifies the wording each refresh and needs an updated rule when a new semester is posted."
+  },
+  {
+    "id": "loconte-rink",
+    "name": "LoConte Ice Rink",
+    "town": "Medford",
+    "address": "97 Locust St, Medford, MA 02155",
+    "latitude": 42.4244,
+    "longitude": -71.1127,
+    "adapter": "myrec",
+    "feedUrl": "https://medfordma.myrec.com/info/calendar/list.aspx?FacilityID=14780&AreaID=14782",
+    "sourceUrl": "https://medfordma.myrec.com/info/facilities/details.aspx?FacilityID=14780",
+    "enabled": true,
+    "notes": "Public Skate and Stick & Puck calendar. It is included even when no future stick sessions are currently posted."
+  },
+  {
+    "id": "burbank-ice-arena",
+    "name": "Burbank Ice Arena",
+    "town": "Reading",
+    "address": "51 Symonds Way, Reading, MA 01867",
+    "latitude": 42.5255,
+    "longitude": -71.1138,
+    "adapter": "manual",
+    "sourceUrl": "https://www.burbankicearena.com/",
+    "enabled": false,
+    "notes": "Add the rink's public calendar feed when one is published; its stick-practice sessions are not on a stable feed yet."
+  }
+]

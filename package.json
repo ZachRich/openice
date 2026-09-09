@@ -1,0 +1,10 @@
+{
+  "name": "northshore-ice-finder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "refresh": "node server.mjs --refresh"
+  }
+}
