@@ -14,6 +14,14 @@ const refreshMinutes = Math.max(10, Number(process.env.REFRESH_MINUTES ?? 360));
 let refreshing = false;
 
 async function readJson(filename) { return JSON.parse(await readFile(filename, "utf8")); }
+async function readEvents() {
+  // data/events.json is derived and not tracked in git; a fresh checkout has no cache yet.
+  try { return await readJson(dataPath); }
+  catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return { updatedAt: null, events: [], sourceStatus: {} };
+  }
+}
 async function saveJson(filename, value) {
   await mkdir(path.dirname(filename), { recursive: true });
   await writeFile(filename, JSON.stringify(value, null, 2) + "\n");
@@ -23,7 +31,7 @@ export async function refresh() {
   if (refreshing) return { skipped: true, message: "A refresh is already running." };
   refreshing = true;
   const sources = await readJson(sourcesPath);
-  const prior = await readJson(dataPath);
+  const prior = await readEvents();
   const sourceStatus = { ...prior.sourceStatus };
   const collected = [];
 
@@ -68,7 +76,7 @@ function contentType(file) {
 async function handler(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
   if (request.method === "GET" && url.pathname === "/api/events") {
-    const data = await readJson(dataPath);
+    const data = await readEvents();
     const includePickup = url.searchParams.get("pickup") === "true";
     const days = Math.min(90, Math.max(1, Number(url.searchParams.get("days") ?? 30)));
     const until = Date.now() + days * 24 * 60 * 60 * 1000;
