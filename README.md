@@ -9,7 +9,7 @@ them by ZIP code and radius. Headed for **openice.us**; currently runs locally.
 Requires Node 20 or later.
 
 ```sh
-cd ~/Dev/Web-Projects/northshore-ice-finder
+cd ~/Dev/Web-Projects/northshore-ice-finder   # the folder name; the site is OpenIce
 npm start
 ```
 

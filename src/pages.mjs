@@ -36,15 +36,6 @@ export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
     <span>${counts[type.id]} upcoming</span>
   </a>`).join("");
 
-  const steps = [
-    ["Pick what you want to skate", "Stick &amp; puck, pickup hockey, or a public skate. Choose one or all three."],
-    ["Search your ZIP and radius", "Sessions are ordered by date and show how far each rink is from you."],
-    ["Check the rink before you go", "Every session links back to the page it came from. Rinks pull walk-on ice for rentals without much notice."]
-  ].map(([title, body], index) => `<li class="step">
-    <span class="step-number">${index + 1}</span>
-    <div><h3>${title}</h3><p>${body}</p></div>
-  </li>`).join("");
-
   const faq = [
     ["Where does the schedule come from?",
      "Public rink calendars and published schedule pages only — the same pages you would read yourself. Nothing here comes from a booking system or an account login."],
@@ -61,7 +52,7 @@ export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
 
   const body = `<section class="hero">
   <div class="wrap">
-    <p class="eyebrow">North Shore &middot; Massachusetts</p>
+    <p class="eyebrow">Massachusetts</p>
     <h1>Find more ice.</h1>
     <p class="lede">Every stick &amp; puck, pickup skate, and public session posted by rinks near
       you — collected from the rinks' own schedules, in one list.</p>
@@ -76,13 +67,6 @@ export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
 
 <section class="band">
   <div class="wrap">
-    <h2>How it works</h2>
-    <ol class="steps">${steps}</ol>
-  </div>
-</section>
-
-<section class="band alt">
-  <div class="wrap">
     <h2>What's covered</h2>
     <p class="section-lede">${live.length} rinks checked continuously, ${events.length} sessions on the
       board right now. Last checked ${escapeHtml(lastChecked(updatedAt))}.</p>
@@ -96,7 +80,7 @@ export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
   </div>
 </section>
 
-<section class="band">
+<section class="band alt">
   <div class="wrap narrow">
     <h2>Questions</h2>
     ${faq}

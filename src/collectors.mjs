@@ -3,7 +3,7 @@ import { parseMyRecSchedule, parseWeeklySchedule } from "./web.mjs";
 
 export async function collect(source) {
   const response = await fetch(source.feedUrl, {
-    headers: { "user-agent": "NorthShoreIceFinder/0.1 (personal schedule dashboard)" },
+    headers: { "user-agent": "OpenIce/0.1 (+https://openice.us; personal schedule aggregator)" },
     signal: AbortSignal.timeout(20_000)
   });
   if (!response.ok) throw new Error(`Schedule returned HTTP ${response.status}`);

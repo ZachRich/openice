@@ -48,8 +48,8 @@ export function layout({ title, description = "", body, active = "" }) {
 <main id="main">${body}</main>
 <footer class="site-footer">
   <div class="wrap">
-    <p>OpenIce reads the schedules that rinks around the North Shore already publish. It is not
-    affiliated with any rink, and it never books or holds ice.</p>
+    <p>OpenIce reads the schedules that rinks already publish, and puts the walk-on sessions in
+    one list. It is not affiliated with any rink, and it never books or holds ice.</p>
     <p class="fine">Rinks pull walk-on ice for rentals and events, often the same day. Every
     session here links back to the rink's own page — check it before you drive over.</p>
   </div>

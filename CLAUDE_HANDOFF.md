@@ -2,14 +2,15 @@
 
 ## Goal
 
-Maintain a small local site that finds walk-on ice — stick & puck, pickup hockey, and public
-skate — near ZIP 01960 (Peabody, MA), searchable by ZIP and radius. It should refresh public
+Maintain OpenIce (openice.us): a small site that finds walk-on ice — stick & puck, pickup hockey,
+and public skate — searchable by ZIP and radius. Coverage today is the rinks within reach of
+01960; the interface is not written around that one area, so keep new copy geography-neutral. It should refresh public
 schedules continuously and never invent sessions from a stale or unverified page.
 
 ## Run locally
 
 ```sh
-cd northshore-ice-finder
+cd northshore-ice-finder   # folder name only; the site is OpenIce
 npm start
 ```
 
