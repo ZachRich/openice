@@ -10,3 +10,6 @@ test/fixtures/live-*
 
 # The generated calendar is derived output
 data/openice.ics
+
+# Built by the publish workflow
+dist/

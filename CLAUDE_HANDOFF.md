@@ -64,6 +64,20 @@ proving the excluded instance stays excluded.
 Not supported yet: `RECURRENCE-ID;RANGE=THISANDFUTURE`, `RDATE`, and `FREQ` values other than
 `WEEKLY` and `DAILY` (those fall back to the single `DTSTART`).
 
+## How it is deployed
+
+There is no server anywhere. `.github/workflows/feed.yml` runs the collector on every push to
+`main` and once a day, and publishes `openice.ics` to GitHub Pages. The website still exists and
+still works, but it is a local tool now: `npm start` when you want to search.
+
+Two properties of that workflow are load-bearing and should not be removed casually:
+
+1. It restores `data/events.json` from the Actions cache. Without it, every run is a cold start —
+   no stale retention, and the volume detector never has history to compare against.
+2. It fails rather than publishing a calendar with zero sessions. An empty feed does not look
+   broken to a calendar client; it looks like every session was cancelled, and it empties the
+   subscription silently.
+
 ## Visual identity — "Lines"
 
 Chosen deliberately over two alternatives; do not drift back toward generic card UI.

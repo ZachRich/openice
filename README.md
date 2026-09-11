@@ -38,6 +38,42 @@ Type is Archivo from Google Fonts, the one external request the site makes. It f
 Helvetica/Arial with the same weights, so the design survives with no network — which is the
 normal case when this runs on a home machine.
 
+## Publishing the calendar from GitHub
+
+`.github/workflows/feed.yml` collects the schedule and publishes `openice.ics` to GitHub Pages.
+It runs on every push to `main` and once a day on its own, so committing is the only operation:
+there is no server, no host and nothing to keep alive.
+
+One-time setup:
+
+```sh
+gh repo create openice --public --source=. --remote=origin --push
+# then: Settings -> Pages -> Source: GitHub Actions
+```
+
+The feed lands at `https://<you>.github.io/openice/openice.ics`. Subscribe with that URL, or swap
+`https://` for `webcal://` and your calendar app will offer to add it. Because it is a public URL,
+Google Calendar works too — its servers do the fetching.
+
+Change what the calendar contains by editing `FEED_QUERY` in the workflow; it takes the same
+parameters as `/search`.
+
+Two things the workflow does that are not obvious:
+
+- **It restores the previous run's `data/events.json` from the Actions cache.** A fresh checkout
+  would throw away two deliberate safety properties: a source that fails keeps the schedule it
+  last published, and the volume detector needs previous counts to notice a source going quiet.
+- **It refuses to publish an empty calendar.** Publishing zero sessions silently empties whatever
+  is subscribed to it, so every source failing at once fails the run instead — a problem worth
+  seeing rather than propagating to your phone.
+
+The tests gate the publish rather than running alongside it, because a parser that eats sessions
+must never reach the calendar.
+
+**Watch out for one GitHub behaviour:** in a public repository, scheduled workflows are disabled
+automatically when the repo has had no activity for 60 days. Pushing anything resets that; if the
+feed ever goes quiet, check the Actions tab for a disabled workflow first.
+
 ## Running it on a Mac
 
 ```sh

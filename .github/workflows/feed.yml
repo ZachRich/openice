@@ -1,0 +1,89 @@
+name: Publish the calendar
+
+# Commit to main and the feed republishes with the new code; otherwise it refreshes
+# once a day on its own. Nothing else runs anywhere.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 11:00 UTC is 07:00 Eastern in summer, 06:00 in winter. GitHub runs scheduled
+    # workflows on a best-effort basis, so treat the time as approximate.
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let a scheduled run and a push run race each other onto Pages.
+concurrency:
+  group: openice-feed
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Runners are UTC. The collector pins America/New_York explicitly in every
+      # conversion, so this only makes the logs readable.
+      TZ: America/New_York
+      HOME_ZIP: "01960"
+      REFRESH_MINUTES: "1440"
+      FEED_PATH: dist/openice.ics
+      # Same parameters as /search — this is the calendar you subscribe to.
+      FEED_QUERY: "zip=01960&radius=25"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # A parser that eats sessions must never reach the calendar. This is the whole
+      # reason the tests exist, so it gates the publish rather than running beside it.
+      - name: Test
+        run: npm test
+
+      # Each run starts with an empty checkout, which would throw away two deliberate
+      # safety properties: a failed source keeps the schedule it last published, and the
+      # volume detector needs previous counts to notice a source going quiet. Restoring
+      # the last run's collection preserves both.
+      - name: Restore the previous collection
+        uses: actions/cache@v4
+        with:
+          path: data/events.json
+          key: openice-events-${{ github.run_id }}
+          restore-keys: openice-events-
+
+      - name: Collect
+        run: node server.mjs --refresh
+
+      # Publishing an empty calendar silently empties whatever it is subscribed to, so
+      # an empty feed fails the run instead. Every source failing at once is a problem
+      # worth seeing, not worth propagating to a phone.
+      - name: Refuse to publish an empty calendar
+        run: |
+          test -s dist/openice.ics || { echo "::error::No calendar was written."; exit 1; }
+          grep -q "^BEGIN:VCALENDAR" dist/openice.ics || { echo "::error::Not a calendar."; exit 1; }
+          sessions=$(grep -c "^BEGIN:VEVENT" dist/openice.ics || true)
+          echo "Publishing $sessions sessions."
+          if [ "$sessions" -eq 0 ]; then
+            echo "::error::The calendar has no sessions. Refusing to publish and empty the subscription."
+            exit 1
+          fi
+          echo "sessions=$sessions" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
