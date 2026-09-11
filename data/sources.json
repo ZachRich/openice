@@ -13,6 +13,19 @@
     "notes": "Official public rink calendar. Stick Time is all ages; pickup is a separate 16+ session."
   },
   {
+    "id": "gloucester-talbot",
+    "name": "Talbot Rink",
+    "town": "Gloucester",
+    "address": "32 Cherry St, Gloucester, MA 01930",
+    "latitude": 42.630006,
+    "longitude": -70.672425,
+    "adapter": "ical",
+    "feedUrl": "https://calendar.google.com/calendar/ical/c_5sfgegqoa0900b84c6alefte18%40group.calendar.google.com/public/basic.ics",
+    "sourceUrl": "https://talbotrink.gloucester-ma.gov/",
+    "enabled": false,
+    "notes": "City of Gloucester rink; the site embeds this public Google Calendar. Site lists stick practice most Wednesdays 11am-1pm ($20), an adult-only session Wednesdays 9:30-10:45am ($10), and public skating most Sundays 2-4pm. Cash only. Enable once a capture confirms real future sessions in the feed."
+  },
+  {
     "id": "essex-sports-center",
     "name": "Essex Sports Center",
     "town": "Middleton",
