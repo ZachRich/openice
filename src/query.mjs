@@ -158,6 +158,23 @@ export function rinkOptions(events, sources) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** The parsed query, back as a query string, so a page can link to its own feed. */
+export function toSearchParams(query = {}) {
+  const params = new URLSearchParams();
+  if (query.zip) params.set("zip", query.zip);
+  if (query.radius) params.set("radius", String(query.radius));
+  for (const type of query.types ?? []) {
+    if (TYPE_IDS.length !== (query.types ?? []).length) params.append("type", type);
+  }
+  if (query.rink) params.set("rink", query.rink);
+  if (query.weekday !== null && query.weekday !== undefined) params.set("weekday", String(query.weekday));
+  if (query.start) params.set("start", query.start);
+  if (query.end) params.set("end", query.end);
+  if (query.after !== null && query.after !== undefined) params.set("after", String(query.after));
+  if (query.before !== null && query.before !== undefined) params.set("before", String(query.before));
+  return params.toString();
+}
+
 export function typeLabel(id) {
   return SESSION_TYPES.find(type => type.id === id)?.label ?? id;
 }

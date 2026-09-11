@@ -53,6 +53,29 @@ linkable and the site works with JavaScript switched off. `public/app.js` only s
 
 `GET /api/events`, `GET /api/sources`, and `POST /api/refresh` remain available for scripting.
 
+## Subscribe in your calendar
+
+`GET /calendar.ics` takes the same query string as `/search` and returns those sessions as an
+iCalendar feed, so available ice sits in your calendar beside everything else you have on:
+
+```
+/calendar.ics?zip=01960&radius=25&type=stick-puck&after=18
+```
+
+The search page carries a **Subscribe** button that builds this URL from whatever you have
+filtered, so the feed is whatever search you were looking at.
+
+Three things worth knowing about it:
+
+- Sessions are published as **free, not busy**. They are ice that exists, not ice you committed
+  to, and marking them busy would make you look unavailable.
+- Each session keeps a **stable UID**, so a client updates an event in place rather than
+  accumulating duplicates every time it refreshes.
+- **Removal is by omission.** A subscribed feed replaces its whole collection, so a session the
+  rink cancels simply stops being published and disappears from your calendar.
+
+The feed advertises a six-hour refresh interval, matching the collector.
+
 ## Session types
 
 A session is indexed only when the rink's own title says what it is:

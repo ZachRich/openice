@@ -1,6 +1,6 @@
 import { layout, escapeHtml, searchForm, dayGroups, radiusSelect, zipInput } from "./render.mjs";
 import { icon } from "./icons.mjs";
-import { SESSION_TYPES, DEFAULT_RADIUS_MILES } from "./query.mjs";
+import { SESSION_TYPES, DEFAULT_RADIUS_MILES, toSearchParams } from "./query.mjs";
 
 const attr = escapeHtml;
 
@@ -119,7 +119,8 @@ function timeClause(query) {
   return "";
 }
 
-export function searchPage({ query, result, rinks, location, error, updatedAt }) {
+export function searchPage({ query, result, rinks, location, error, updatedAt, host = "" }) {
+  const feed = toSearchParams(query);
   const heldOver = result.events.filter(event => event.staleSince).length;
   const staleNotice = heldOver > 0
     ? `<p class="notice warn">${heldOver === result.total
@@ -148,6 +149,18 @@ export function searchPage({ query, result, rinks, location, error, updatedAt })
   ${summary}
   ${staleNotice}
   ${result.total === 0 && !error ? empty : dayGroups(result.days)}
+  <section class="subscribe">
+    <div>
+      <h2>Put this in your calendar</h2>
+      <p>Subscribe and these sessions appear alongside everything else you have on, updating as
+        rinks post and cancel. The subscription carries whatever you have filtered above, and it is
+        marked free rather than busy — it is ice that exists, not ice you committed to.</p>
+    </div>
+    <p class="subscribe-actions">
+      <a class="button" href="${attr(`webcal://${host}/calendar.ics${feed ? `?${feed}` : ""}`)}">Subscribe</a>
+      <a class="button ghost" href="${attr(`/calendar.ics${feed ? `?${feed}` : ""}`)}">Download .ics</a>
+    </p>
+  </section>
   <p class="fine checked">Schedules last checked ${escapeHtml(lastChecked(updatedAt))}.
     <a href="/about">Where this comes from</a></p>
 </div>`;

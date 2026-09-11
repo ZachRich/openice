@@ -7,6 +7,7 @@ import { mergeCollection } from "./src/merge.mjs";
 import { lookupZip, ZipError, normalizeZip } from "./src/geocode.mjs";
 import { searchEvents, rinkOptions, TYPE_IDS, DEFAULT_RADIUS_MILES, RADIUS_CHOICES, HOUR_CHOICES } from "./src/query.mjs";
 import { homePage, searchPage, rinksPage, rinkPage, aboutPage, notFoundPage } from "./src/pages.mjs";
+import { buildCalendar } from "./src/ics.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dataPath = path.join(root, "data", "events.json");
@@ -174,6 +175,25 @@ async function handler(request, response) {
     return sendHtml(response, 200, homePage({ sources, events: upcoming.events, updatedAt: data.updatedAt, homeZip: HOME_ZIP }));
   }
 
+  // The feed is the search, in calendar form: same query string, same results.
+  if (pathname === "/calendar.ics") {
+    const query = readSearchQuery(url);
+    const { location } = await resolveLocation(query.zip);
+    const result = searchEvents(events, {
+      origin: location,
+      radiusMiles: location ? query.radius : null,
+      types: query.types, rinkId: query.rink, weekday: query.weekday,
+      startDate: query.start, endDate: query.end,
+      afterHour: query.after, beforeHour: query.before
+    });
+    response.writeHead(200, {
+      "content-type": "text/calendar; charset=utf-8",
+      "content-disposition": 'inline; filename="openice.ics"',
+      "cache-control": "no-store"
+    });
+    return response.end(buildCalendar({ events: result.events, query, updatedAt: data.updatedAt }));
+  }
+
   if (pathname === "/search") {
     const query = readSearchQuery(url);
     const { location, error } = await resolveLocation(query.zip);
@@ -187,7 +207,8 @@ async function handler(request, response) {
     return sendHtml(response, 200, searchPage({
       query, result, location, error,
       rinks: rinkOptions(events, sources),
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
+      host: request.headers.host ?? `${host}:${port}`
     }));
   }
 

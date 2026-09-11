@@ -31,6 +31,10 @@ No package installation is required; this is Node ESM using built-in APIs.
 - `src/geocode.mjs` — ZIP -> coordinates, cached in `data/zipcodes.json`; 01960 is pre-seeded.
 - `src/render.mjs` / `src/pages.mjs` / `src/icons.mjs` — server-rendered HTML. Pages are plain
   strings; every filter is a GET form, so the site works without JavaScript.
+- `src/ics.mjs` — publishes the search results as a subscribable iCalendar feed. RFC 5545 is
+  fussy: text escaping, 75-**octet** line folding that must not split a multi-byte character, and
+  CRLF endings. There is a round-trip test that reads our own feed back with `parseIcalSchedule` —
+  if the collector cannot read what we publish, it is malformed.
 - `server.mjs` — HTTP server, routes, and refresh loop.
 - `public/` — stylesheet and a small progressive-enhancement script.
 - `test/` — offline fixture-based tests (`npm test`); `scripts/capture.mjs` snapshots a live

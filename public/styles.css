@@ -191,6 +191,14 @@ a { color: var(--blue-ink); }
 .notice.warn { border-left-color: var(--gold); }
 .checked { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--hair); }
 
+.subscribe {
+  display: flex; gap: 26px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;
+  margin-top: 40px; padding: 22px; background: var(--tint); border: 2px solid var(--ink);
+}
+.subscribe h2 { font-size: 1.2rem; }
+.subscribe p { color: var(--dim); max-width: 58ch; margin: 0; font-size: .92rem; }
+.subscribe-actions { display: flex; gap: 10px; flex-wrap: wrap; flex: 0 0 auto; }
+
 /* ---------------------------------------------------------------- sessions */
 
 .day-group { margin-bottom: 34px; }
