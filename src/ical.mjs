@@ -177,7 +177,7 @@ export function classifyIceEvent(title) {
   if (NOT_A_WALK_ON.test(text)) return null;
   if (/pick[ -]?up hockey|open hockey|drop[ -]?in hockey/.test(text)) return "pickup";
   if (/stick\s*(?:&|and|n)?\s*puck|stick\s*(?:time|practice)/.test(text)) return "stick-puck";
-  if (/public skate|open skate|family skate|community skate|open freeskate/.test(text)) return "public-skate";
+  if (/public skate|open skate|family skate|community skate|adult skate|open freeskate/.test(text)) return "public-skate";
   return null;
 }
 

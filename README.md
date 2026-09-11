@@ -84,7 +84,7 @@ A session is indexed only when the rink's own title says what it is:
 | --- | --- |
 | `stick-puck` | Stick & Puck, Stick Time, Stick Practice |
 | `pickup` | Pickup Hockey, Open Hockey, Drop-in Hockey |
-| `public-skate` | Public Skate, Open Skate, Family Skate |
+| `public-skate` | Public Skate, Open Skate, Family Skate, Adult Skate |
 
 Lessons, clinics, leagues, games, freestyle and figure-skating ice are excluded — they are not
 sessions you can turn up to.
@@ -151,6 +151,7 @@ refresh and stops rather than silently carrying a stale semester schedule forwar
 | Ed Burns Arena | Arlington | MyRec public calendar |
 | LoConte Ice Rink | Medford | MyRec public calendar |
 | Rockett Arena, Salem State | Salem | Verified weekly schedule |
+| Talbot Rink | Gloucester | Google Calendar iCalendar |
 
 Essex Sports Center and Burbank Ice Arena are recorded but disabled: their public pages do not
 offer a confirmed, stable machine-readable schedule. This avoids treating guessed data as live.
