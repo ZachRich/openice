@@ -32,7 +32,9 @@ jobs:
       REFRESH_MINUTES: "1440"
       FEED_PATH: dist/openice.ics
       # Same parameters as /search — this is the calendar you subscribe to.
-      FEED_QUERY: "zip=01960&radius=25"
+      # Stick & puck you could actually get to after work: starting 4:15pm or later
+      # (the hour rinks tend to open walk-on ice) and no later than 11pm.
+      FEED_QUERY: "zip=01960&radius=25&type=stick-puck&after=16:15&before=23"
     steps:
       - uses: actions/checkout@v4
 

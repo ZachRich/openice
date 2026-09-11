@@ -49,6 +49,40 @@ export function easternWeekday(value) {
   return new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
 }
 
+/**
+ * A time-of-day bound, as minutes since midnight.
+ *
+ * The dropdowns offer whole hours, which is the right granularity to click. A hand-written
+ * query can be finer: rinks really do start sessions at 4:15, and rounding that down to 4
+ * quietly widens the filter. So a bare hour means the whole hour, and "16:15" means exactly
+ * that minute.
+ */
+export function parseTimeOfDay(value, { endOfHour = false } = {}) {
+  if (value === null || value === undefined || value === "") return null;
+  const text = String(value).trim();
+
+  const precise = /^(\d{1,2}):([0-5]\d)$/.exec(text);
+  if (precise) {
+    const hours = Number(precise[1]);
+    return hours <= 23 ? hours * 60 + Number(precise[2]) : null;
+  }
+
+  const hour = Number(text);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+  return endOfHour ? hour * 60 + 59 : hour * 60;
+}
+
+/** "4:15pm", for saying back what a bound did. */
+export function formatTimeOfDay(value) {
+  const minutes = parseTimeOfDay(value);
+  if (minutes === null) return "";
+  const hours = Math.floor(minutes / 60);
+  const suffix = hours < 12 ? "am" : "pm";
+  const display = hours % 12 === 0 ? 12 : hours % 12;
+  const rest = minutes % 60;
+  return rest === 0 ? `${display}${suffix}` : `${display}:${String(rest).padStart(2, "0")}${suffix}`;
+}
+
 /** Minutes since midnight, Eastern, for the day the session starts on. */
 export function easternMinutes(value) {
   const parts = easternParts(new Date(value));
@@ -115,8 +149,10 @@ export function searchEvents(events, options = {}) {
     // "earliest 6 AM" keeps a 6:00 start, "latest 9 PM" keeps a 9:45 PM one.
     if (afterHour !== null || beforeHour !== null) {
       const minutes = easternMinutes(start);
-      if (afterHour !== null && minutes < Number(afterHour) * 60) continue;
-      if (beforeHour !== null && minutes > Number(beforeHour) * 60 + 59) continue;
+      const earliest = parseTimeOfDay(afterHour);
+      const latest = parseTimeOfDay(beforeHour, { endOfHour: true });
+      if (earliest !== null && minutes < earliest) continue;
+      if (latest !== null && minutes > latest) continue;
     }
 
     const miles = origin

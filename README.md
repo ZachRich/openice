@@ -56,7 +56,9 @@ The feed lands at `https://<you>.github.io/openice/openice.ics`. Subscribe with 
 Google Calendar works too — its servers do the fetching.
 
 Change what the calendar contains by editing `FEED_QUERY` in the workflow; it takes the same
-parameters as `/search`.
+parameters as `/search`. The time bounds accept a bare hour (`after=18`, meaning the whole hour)
+or an exact minute (`after=16:15`) — the dropdowns on the site offer hours, but rinks really do
+start sessions at 4:15, and rounding that down quietly widens the filter.
 
 Two things the workflow does that are not obvious:
 

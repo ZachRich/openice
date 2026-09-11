@@ -1,6 +1,6 @@
 import { layout, escapeHtml, searchForm, dayGroups, radiusSelect, zipInput } from "./render.mjs";
 import { icon } from "./icons.mjs";
-import { SESSION_TYPES, DEFAULT_RADIUS_MILES, toSearchParams } from "./query.mjs";
+import { SESSION_TYPES, DEFAULT_RADIUS_MILES, toSearchParams, formatTimeOfDay } from "./query.mjs";
 
 const attr = escapeHtml;
 
@@ -105,17 +105,12 @@ export function homePage({ sources, events, updatedAt, homeZip = "01960" }) {
 
 /* ------------------------------------------------------------------ search */
 
-function hourLabel(hour) {
-  const suffix = hour < 12 ? "am" : "pm";
-  return `${hour % 12 === 0 ? 12 : hour % 12}${suffix}`;
-}
-
 function timeClause(query) {
   if (query.after !== null && query.after !== undefined && query.before !== null && query.before !== undefined) {
-    return ` starting between <strong>${hourLabel(query.after)}</strong> and <strong>${hourLabel(query.before)}</strong>`;
+    return ` starting between <strong>${formatTimeOfDay(query.after)}</strong> and <strong>${formatTimeOfDay(query.before)}</strong>`;
   }
-  if (query.after !== null && query.after !== undefined) return ` starting <strong>${hourLabel(query.after)}</strong> or later`;
-  if (query.before !== null && query.before !== undefined) return ` starting <strong>${hourLabel(query.before)}</strong> or earlier`;
+  if (query.after !== null && query.after !== undefined) return ` starting <strong>${formatTimeOfDay(query.after)}</strong> or later`;
+  if (query.before !== null && query.before !== undefined) return ` starting <strong>${formatTimeOfDay(query.before)}</strong> or earlier`;
   return "";
 }
 

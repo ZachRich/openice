@@ -5,7 +5,7 @@ import path from "node:path";
 import { collect } from "./src/collectors.mjs";
 import { mergeCollection } from "./src/merge.mjs";
 import { lookupZip, ZipError, normalizeZip } from "./src/geocode.mjs";
-import { searchEvents, rinkOptions, TYPE_IDS, DEFAULT_RADIUS_MILES, RADIUS_CHOICES, HOUR_CHOICES } from "./src/query.mjs";
+import { searchEvents, rinkOptions, TYPE_IDS, DEFAULT_RADIUS_MILES, RADIUS_CHOICES, parseTimeOfDay } from "./src/query.mjs";
 import { homePage, searchPage, rinksPage, rinkPage, aboutPage, notFoundPage } from "./src/pages.mjs";
 import { buildCalendar } from "./src/ics.mjs";
 
@@ -66,6 +66,17 @@ export async function refresh() {
     }
 
     const next = mergeCollection({ sources, prior, outcomes });
+
+    // A single total hides the thing that actually goes wrong: one source failing while
+    // the rest carry on. Unattended, that difference is invisible without this.
+    for (const [id, status] of Object.entries(next.sourceStatus)) {
+      const name = sources.find(source => source.id === id)?.name ?? id;
+      if (status.state === "disabled") { console.log(`  ${name}: not indexed`); continue; }
+      if (status.state !== "error") { console.log(`  ${name}: ${status.count} sessions`); continue; }
+      console.warn(`  ${name}: FAILED — ${status.message}`
+        + (status.retained ? ` (keeping ${status.count} last confirmed ${status.lastSuccessAt})` : " (no sessions to fall back on)"));
+    }
+
     for (const [id, status] of Object.entries(next.sourceStatus)) {
       if (!status.volumeDrop) continue;
       const name = sources.find(source => source.id === id)?.name ?? id;
@@ -137,9 +148,10 @@ function readSearchQuery(url) {
   const requestedTypes = url.searchParams.getAll("type").filter(type => TYPE_IDS.includes(type));
   const radius = Number(url.searchParams.get("radius"));
   const weekday = url.searchParams.get("weekday");
+  // Kept as written so the form can echo it back; validity is decided by the parser.
   const hour = name => {
-    const value = Number(url.searchParams.get(name));
-    return HOUR_CHOICES.some(choice => choice.value === value) ? value : null;
+    const raw = url.searchParams.get(name);
+    return parseTimeOfDay(raw) === null ? null : raw;
   };
   return {
     zip: (url.searchParams.get("zip") ?? HOME_ZIP).trim(),

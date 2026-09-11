@@ -152,3 +152,46 @@ test("the hour choices cover a rink's plausible day", () => {
   assert.equal(HOUR_CHOICES.find(choice => choice.value === 12).label, "12:00 PM");
   assert.equal(HOUR_CHOICES.find(choice => choice.value === 13).label, "1:00 PM");
 });
+
+/* -------------------------------------------- precise time-of-day bounds */
+
+import { parseTimeOfDay, formatTimeOfDay } from "../src/query.mjs";
+
+test("a bare hour means the whole hour, at both ends", () => {
+  assert.equal(parseTimeOfDay(18), 18 * 60, "an earliest bound starts at the top of the hour");
+  assert.equal(parseTimeOfDay(18, { endOfHour: true }), 18 * 60 + 59, "a latest bound covers all of it");
+  assert.equal(parseTimeOfDay("6"), 360);
+});
+
+test("a minute can be named exactly, because rinks start at 4:15", () => {
+  assert.equal(parseTimeOfDay("16:15"), 16 * 60 + 15);
+  assert.equal(parseTimeOfDay("16:15", { endOfHour: true }), 16 * 60 + 15, "precision wins over the hour rule");
+  assert.equal(parseTimeOfDay("9:05"), 545);
+});
+
+test("nonsense is rejected rather than guessed at", () => {
+  for (const bad of ["", null, undefined, "abc", "24", "-1", "12:60", "12:5", "12:345"]) {
+    assert.equal(parseTimeOfDay(bad), null, JSON.stringify(bad));
+  }
+});
+
+test("bounds read back the way a person would say them", () => {
+  assert.equal(formatTimeOfDay(18), "6pm");
+  assert.equal(formatTimeOfDay("16:15"), "4:15pm");
+  assert.equal(formatTimeOfDay(12), "12pm");
+  assert.equal(formatTimeOfDay("0:30"), "12:30am");
+  assert.equal(formatTimeOfDay("nope"), "");
+});
+
+test("a 4:15pm bound keeps the 4:15 session and drops the 4:00 one", () => {
+  const events = [at(16, 0), at(16, 15), at(16, 30), at(23, 0), at(23, 30)];
+  const result = searchEvents(events, { now, afterHour: "16:15", beforeHour: 23 });
+  assert.deepEqual(result.events.map(e => easternMinutes(e.start)),
+    [16 * 60 + 15, 16 * 60 + 30, 23 * 60, 23 * 60 + 30]);
+});
+
+test("the whole-hour latest bound still includes late starts in that hour", () => {
+  // "up to 11pm" should not throw away an 11:45 start; the hour is the unit you picked.
+  const result = searchEvents([at(23, 45)], { now, beforeHour: 23 });
+  assert.equal(result.total, 1);
+});
