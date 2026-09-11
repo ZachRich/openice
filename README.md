@@ -61,10 +61,37 @@ so the installer resolves the absolute path to `node` and writes it into the age
 | See whether it is loaded | `launchctl print gui/$(id -u)/us.openice.refresh \| head -20` |
 | Watch it work | `tail -f ~/Library/Logs/openice/us.openice.refresh.log` |
 
-`--with-server` adds a second agent that keeps the site up and restarts it if it dies, which is
-what you need for the calendar feed — a subscription needs something listening when your calendar
-client comes looking. Without it, the daily job refreshes the data and you run `npm start` when
-you want to look.
+`--with-server` adds a second agent that keeps the site up and restarts it if it dies. Without it,
+the daily job refreshes the data and you run `npm start` when you want to look.
+
+### Getting the calendar onto your phone
+
+Every refresh writes the calendar to disk as well as serving it, so a subscription does not need a
+running server. Point it at a folder that syncs, and filter it to the ice you actually want:
+
+```sh
+./scripts/install-macos.sh \
+  --feed-path ~/Library/Mobile\ Documents/com~apple~CloudDocs/openice.ics \
+  --feed-query 'zip=01960&radius=25&type=stick-puck&after=18'
+```
+
+`FEED_QUERY` takes exactly the same parameters as `/search`, so whatever search you like on the
+site is the search your calendar gets. Default is everything within 25 miles of `HOME_ZIP`.
+
+From there, three ways to subscribe, in increasing order of effort:
+
+1. **A file-sharing link.** Put the feed in a synced folder and create a public link to it. The
+   link has to return the **file itself**, not a preview page — `curl -sI '<link>'` should show
+   `text/calendar` or at least not `text/html`. Dropbox links need `?raw=1`; some services only
+   ever serve a download page, which calendar clients cannot read.
+2. **Over your home network.** Install with `--with-server`, start it with `HOST=0.0.0.0`, and
+   subscribe your phone to `http://<your-mac>.local:3030/calendar.ics?...`. Use the `.local` name
+   rather than the IP, which changes. Updates only when you are home and the Mac is awake, and the
+   subscription must be stored **on the device** — iCloud and Google fetch from their own servers,
+   which cannot see your LAN.
+3. **A public URL**, via a Cloudflare Tunnel or by pushing the file to any static host on each
+   refresh. Needed if you want it to update while you are away, or want to use Google Calendar,
+   whose servers do the fetching.
 
 **What a daily cadence costs:** the schedule can be up to 24 hours behind. Rinks cancel walk-on ice
 the same day, so a 6am refresh will catch a cancellation made overnight but not one made at noon

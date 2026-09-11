@@ -18,6 +18,13 @@ const port = Number(process.env.PORT ?? 3030);
 const host = process.env.HOST ?? "127.0.0.1";
 const refreshMinutes = Math.max(10, Number(process.env.REFRESH_MINUTES ?? 360));
 const HOME_ZIP = process.env.HOME_ZIP ?? "01960";
+// Every refresh also writes the calendar to disk, so a subscription does not require a
+// running server: point FEED_PATH at somewhere your calendar can reach (iCloud Drive,
+// Dropbox, a synced folder) and FEED_QUERY at the search you actually care about.
+const feedPath = process.env.FEED_PATH
+  ? path.resolve(process.env.FEED_PATH.replace(/^~(?=$|\/)/, process.env.HOME ?? "~"))
+  : path.join(root, "data", "openice.ics");
+const feedQuery = process.env.FEED_QUERY ?? `zip=${HOME_ZIP}&radius=${DEFAULT_RADIUS_MILES}`;
 let refreshing = false;
 
 async function readJson(filename) { return JSON.parse(await readFile(filename, "utf8")); }
@@ -66,9 +73,35 @@ export async function refresh() {
         + "The page loaded fine, so either the rink cancelled a lot of ice or the adapter has stopped matching.");
     }
     await saveJson(dataPath, next);
+    await writeFeedFile(next, sources);
     return next;
   } finally {
     refreshing = false;
+  }
+}
+
+/** The calendar, written out after every refresh, so subscribing needs no server. */
+async function writeFeedFile(data, sources) {
+  try {
+    const query = readSearchQuery(new URL(`http://feed/search?${feedQuery}`));
+    const { location } = await resolveLocation(query.zip);
+    const result = searchEvents(withRinkDetails(data.events, sources), {
+      origin: location,
+      radiusMiles: location ? query.radius : null,
+      types: query.types, rinkId: query.rink, weekday: query.weekday,
+      startDate: query.start, endDate: query.end,
+      afterHour: query.after, beforeHour: query.before
+    });
+    await mkdir(path.dirname(feedPath), { recursive: true });
+    await writeFile(feedPath, buildCalendar({
+      events: result.events, query, updatedAt: data.updatedAt, refreshMinutes
+    }));
+    return result.total;
+  } catch (error) {
+    // A calendar we could not write is worth saying out loud, but never worth losing a
+    // refresh over — the collected schedule is already safely on disk.
+    console.error(`Could not write ${feedPath}: ${error.message}`);
+    return null;
   }
 }
 
@@ -246,7 +279,8 @@ async function handler(request, response) {
 
 if (process.argv.includes("--refresh")) {
   const result = await refresh();
-  console.log(`Updated ${result.events?.length ?? 0} events at ${result.updatedAt ?? "(not completed)"}.`);
+  console.log(`Updated ${result.events?.length ?? 0} sessions at ${result.updatedAt ?? "(not completed)"}.`);
+  console.log(`Calendar written to ${feedPath}`);
 } else {
   const server = http.createServer((request, response) =>
     handler(request, response).catch(error => send(response, 500, JSON.stringify({ error: error.message }))));

@@ -7,3 +7,6 @@ data/events.json
 
 # Captured live sources are local working files, not fixtures to commit
 test/fixtures/live-*
+
+# The generated calendar is derived output
+data/openice.ics

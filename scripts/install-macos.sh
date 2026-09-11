@@ -7,6 +7,11 @@
 #   ./scripts/install-macos.sh --with-server   # also keep the site and feed running
 #   ./scripts/install-macos.sh --uninstall
 #
+#   # write the calendar into iCloud Drive, filtered to evening stick & puck
+#   ./scripts/install-macos.sh \
+#     --feed-path ~/Library/Mobile\ Documents/com~apple~CloudDocs/openice.ics \
+#     --feed-query 'zip=01960&radius=25&type=stick-puck&after=18'
+#
 # launchd is used rather than cron for one reason that matters here: if the Mac is
 # asleep at the scheduled time, launchd runs the job when it next wakes. cron would
 # simply skip the day, and you would not find out until the schedule looked stale.
@@ -25,17 +30,25 @@ WITH_SERVER=0
 UNINSTALL=0
 PORT="${PORT:-3030}"
 HOME_ZIP="${HOME_ZIP:-01960}"
+FEED_PATH="${FEED_PATH:-}"
+FEED_QUERY="${FEED_QUERY:-}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --hour) HOUR="$2"; shift 2 ;;
     --minute) MINUTE="$2"; shift 2 ;;
     --with-server) WITH_SERVER=1; shift ;;
+    --feed-path) FEED_PATH="$2"; shift 2 ;;
+    --feed-query) FEED_QUERY="$2"; shift 2 ;;
     --uninstall) UNINSTALL=1; shift ;;
-    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+
+# Values land inside XML. A query string like "type=stick-puck&after=18" carries an
+# ampersand, which makes the plist malformed and launchd refuses it at load time.
+xml_escape() { printf '%s' "${1-}" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
 
 unload() {
   local label="$1"
@@ -63,6 +76,13 @@ mkdir -p "$AGENTS" "$LOGS"
 
 write_plist() {
   local label="$1" schedule="$2" keepalive="$3" args="$4"
+  local feed_env=""
+  [ -n "$FEED_PATH" ] && feed_env="$feed_env
+    <key>FEED_PATH</key><string>$(xml_escape "$FEED_PATH")</string>"
+  [ -n "$FEED_QUERY" ] && feed_env="$feed_env
+    <key>FEED_QUERY</key><string>$(xml_escape "$FEED_QUERY")</string>"
+  local x_node x_project x_zip
+  x_node="$(xml_escape "$NODE_BIN")"; x_project="$(xml_escape "$PROJECT")"; x_zip="$(xml_escape "$HOME_ZIP")"
   cat > "$AGENTS/$label.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -71,15 +91,15 @@ write_plist() {
   <key>Label</key><string>$label</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$NODE_BIN</string>
-    <string>$PROJECT/server.mjs</string>$args
+    <string>$x_node</string>
+    <string>$x_project/server.mjs</string>$args
   </array>
-  <key>WorkingDirectory</key><string>$PROJECT</string>
+  <key>WorkingDirectory</key><string>$x_project</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PORT</key><string>$PORT</string>
-    <key>HOME_ZIP</key><string>$HOME_ZIP</string>
-    <key>REFRESH_MINUTES</key><string>1440</string>
+    <key>HOME_ZIP</key><string>$x_zip</string>
+    <key>REFRESH_MINUTES</key><string>1440</string>$feed_env
   </dict>
 $schedule$keepalive  <key>StandardOutPath</key><string>$LOGS/$label.log</string>
   <key>StandardErrorPath</key><string>$LOGS/$label.log</string>
@@ -104,6 +124,11 @@ write_plist "$REFRESH_LABEL" "$CALENDAR" "" "
     <string>--refresh</string>"
 launchctl bootstrap "$GUI" "$AGENTS/$REFRESH_LABEL.plist"
 printf 'Daily refresh installed: %02d:%02d every day.\n' "$HOUR" "$MINUTE"
+if [ -n "$FEED_PATH" ]; then
+  echo "Calendar written to: $FEED_PATH"
+else
+  echo "Calendar written to: $PROJECT/data/openice.ics"
+fi
 
 if [ "$WITH_SERVER" = "1" ]; then
   unload "$SERVER_LABEL"
