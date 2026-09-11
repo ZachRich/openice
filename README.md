@@ -38,6 +38,39 @@ Type is Archivo from Google Fonts, the one external request the site makes. It f
 Helvetica/Arial with the same weights, so the design survives with no network — which is the
 normal case when this runs on a home machine.
 
+## Running it on a Mac
+
+```sh
+./scripts/install-macos.sh                  # refresh once a day at 06:00
+./scripts/install-macos.sh --hour 5         # ...at 05:00 instead
+./scripts/install-macos.sh --with-server    # also keep the site and feed running
+./scripts/install-macos.sh --uninstall
+```
+
+This installs launchd agents rather than a cron entry for one reason that matters: **if the Mac
+is asleep at the scheduled time, launchd runs the job when it next wakes.** cron would skip the
+day and you would only find out when the schedule looked stale.
+
+launchd starts jobs with a bare environment — no shell profile, no nvm, no Homebrew on `PATH` —
+so the installer resolves the absolute path to `node` and writes it into the agent. Logs go to
+`~/Library/Logs/openice/`.
+
+| | |
+| --- | --- |
+| Run the refresh now | `launchctl kickstart -k gui/$(id -u)/us.openice.refresh` |
+| See whether it is loaded | `launchctl print gui/$(id -u)/us.openice.refresh \| head -20` |
+| Watch it work | `tail -f ~/Library/Logs/openice/us.openice.refresh.log` |
+
+`--with-server` adds a second agent that keeps the site up and restarts it if it dies, which is
+what you need for the calendar feed — a subscription needs something listening when your calendar
+client comes looking. Without it, the daily job refreshes the data and you run `npm start` when
+you want to look.
+
+**What a daily cadence costs:** the schedule can be up to 24 hours behind. Rinks cancel walk-on ice
+the same day, so a 6am refresh will catch a cancellation made overnight but not one made at noon
+for a 7pm session. Every session still links back to the rink's page, and anything the collector
+could not re-check is marked with the date it was last confirmed.
+
 ## Pages
 
 | Route | What it is |

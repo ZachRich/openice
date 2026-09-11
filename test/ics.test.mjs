@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildCalendar, escapeText, foldLine, formatUtc, eventUid, calendarName } from "../src/ics.mjs";
+import { buildCalendar, escapeText, foldLine, formatUtc, eventUid, calendarName, refreshDuration } from "../src/ics.mjs";
 import { easternToUtc } from "../src/ical.mjs";
 
 function session(overrides = {}) {
@@ -98,10 +98,22 @@ test("location and coordinates are published when known", () => {
   assert.ok(!withoutGeo.includes("GEO:"));
 });
 
-test("the feed tells clients how often to look again", () => {
-  const ics = buildCalendar({ events: [] });
-  assert.ok(lines(ics).includes("REFRESH-INTERVAL;VALUE=DURATION:PT6H"));
-  assert.ok(lines(ics).includes("X-PUBLISHED-TTL:PT6H"));
+test("the feed tells clients how often to look again, in the real cadence", () => {
+  const sixHourly = buildCalendar({ events: [] });
+  assert.ok(lines(sixHourly).includes("REFRESH-INTERVAL;VALUE=DURATION:PT6H"));
+  assert.ok(lines(sixHourly).includes("X-PUBLISHED-TTL:PT6H"));
+
+  // A collector that only runs once a day must not claim to be six-hourly.
+  const daily = buildCalendar({ events: [], refreshMinutes: 1440 });
+  assert.ok(lines(daily).includes("REFRESH-INTERVAL;VALUE=DURATION:PT24H"));
+});
+
+test("refresh durations are ISO 8601, in hours when they divide evenly", () => {
+  assert.equal(refreshDuration(1440), "PT24H");
+  assert.equal(refreshDuration(360), "PT6H");
+  assert.equal(refreshDuration(90), "PT90M");
+  assert.equal(refreshDuration(10), "PT10M");
+  assert.equal(refreshDuration(undefined), "PT6H");
 });
 
 test("an empty result is still a valid calendar", () => {

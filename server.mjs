@@ -191,7 +191,7 @@ async function handler(request, response) {
       "content-disposition": 'inline; filename="openice.ics"',
       "cache-control": "no-store"
     });
-    return response.end(buildCalendar({ events: result.events, query, updatedAt: data.updatedAt }));
+    return response.end(buildCalendar({ events: result.events, query, updatedAt: data.updatedAt, refreshMinutes }));
   }
 
   if (pathname === "/search") {

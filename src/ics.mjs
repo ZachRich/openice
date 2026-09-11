@@ -23,7 +23,11 @@ import { SESSION_TYPES, TYPE_IDS, WEEKDAYS, typeLabel } from "./query.mjs";
  */
 
 const PRODID = "-//OpenIce//Walk-on ice//EN";
-const REFRESH = "PT6H"; // matches the collector's default cadence
+/** Tell subscribers how often this is worth re-fetching, in the collector's real cadence. */
+export function refreshDuration(minutes = 360) {
+  const total = Math.max(1, Math.round(Number(minutes) || 360));
+  return total % 60 === 0 ? `PT${total / 60}H` : `PT${total}M`;
+}
 
 /** RFC 5545 text escaping: backslash, semicolon and comma are literals; newlines are \n. */
 export function escapeText(value) {
@@ -117,8 +121,9 @@ export function calendarName(query = {}) {
   return `OpenIce · ${label}${where}${day}`;
 }
 
-export function buildCalendar({ events = [], query = {}, updatedAt = null } = {}) {
+export function buildCalendar({ events = [], query = {}, updatedAt = null, refreshMinutes = 360 } = {}) {
   const stamp = formatUtc(updatedAt ?? new Date());
+  const refresh = refreshDuration(refreshMinutes);
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -128,8 +133,8 @@ export function buildCalendar({ events = [], query = {}, updatedAt = null } = {}
     `X-WR-CALNAME:${escapeText(calendarName(query))}`,
     `X-WR-CALDESC:${escapeText("Publicly posted stick & puck, pickup hockey and public skate sessions, collected by OpenIce.")}`,
     "X-WR-TIMEZONE:America/New_York",
-    `REFRESH-INTERVAL;VALUE=DURATION:${REFRESH}`,
-    `X-PUBLISHED-TTL:${REFRESH}`,
+    `REFRESH-INTERVAL;VALUE=DURATION:${refresh}`,
+    `X-PUBLISHED-TTL:${refresh}`,
     ...events.flatMap(event => eventBlock(event, stamp)),
     "END:VCALENDAR"
   ];
